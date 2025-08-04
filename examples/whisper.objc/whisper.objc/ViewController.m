@@ -256,7 +256,16 @@ void AudioInputCallback(void * inUserData,
             // append the text to the result
             result = [result stringByAppendingString:[NSString stringWithUTF8String:text_cur]];
         }
-
+        
+        // BEGIN INSERTION POINT
+        NSURL *wavURL = [self exportRecordedPCMToWav];
+        if (wavURL) {
+            NSLog(@"✅ Exported WAV: %@", wavURL.path);
+        } else {
+            NSLog(@"❌ exportRecordedPCMToWav returned nil");
+        }
+        // END INSERTION POINT
+        
         const float tRecording = (float)self->stateInp.n_samples / (float)self->stateInp.dataFormat.mSampleRate;
 
         // append processing time
@@ -321,5 +330,69 @@ void AudioInputCallback(void * inUserData,
         });
     }
 }
+
+// Add at the top of the file, below imports
+#define BAIL_ON_ERR(err, msg) \
+  if ((err) != noErr) { \
+    NSLog(@"❌ %s failed: %d", msg, (int)(err)); \
+    if (fref) ExtAudioFileDispose(fref); \
+    return nil; \
+  }
+
+- (NSURL*)exportRecordedPCMToWav {
+    UInt32 count = stateInp.n_samples;
+    NSLog(@"🎙 exportRecordedPCMToWav: sampleCount = %u", count);
+    if (count < WHISPER_SAMPLE_RATE / 4) { // warn if less than 500 ms
+        NSLog(@"⚠️ Too few samples for valid WAV.");
+    }
+
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSURL *docs = [[fm URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
+    NSString *fn = [NSString stringWithFormat:@"rec-%@.wav", [NSUUID UUID].UUIDString];
+    NSURL *url = [docs URLByAppendingPathComponent:fn];
+    NSURL *outerr = url;
+    // Audio Format (must include IsPacked to avoid 'fmt?' error)
+    AudioStreamBasicDescription fmt = {0};
+    fmt.mSampleRate       = WHISPER_SAMPLE_RATE;           // 16 000.0
+    fmt.mFormatID         = kAudioFormatLinearPCM;
+    fmt.mFormatFlags      = kAudioFormatFlagIsSignedInteger
+                          | kAudioFormatFlagIsPacked;
+    fmt.mFramesPerPacket  = 1;
+    fmt.mChannelsPerFrame = 1;
+    fmt.mBitsPerChannel   = 16;
+    fmt.mBytesPerFrame    = (fmt.mBitsPerChannel/8) * fmt.mChannelsPerFrame;
+    fmt.mBytesPerPacket   = fmt.mBytesPerFrame;
+    fmt.mReserved         = 0;
+
+    ExtAudioFileRef fref = NULL;
+    OSStatus err = ExtAudioFileCreateWithURL((__bridge CFURLRef)url,
+                                              kAudioFileWAVEType,
+                                              &fmt,
+                                              NULL,
+                                              kAudioFileFlags_EraseFile,
+                                              &fref);
+    BAIL_ON_ERR(err, "ExtAudioFileCreateWithURL");
+
+    err = ExtAudioFileSetProperty(fref,
+                                  kExtAudioFileProperty_ClientDataFormat,
+                                  sizeof(fmt),
+                                  &fmt);
+    BAIL_ON_ERR(err, "ExtAudioFileSetProperty");
+
+    AudioBufferList abl = {0};
+    abl.mNumberBuffers = 1;
+    abl.mBuffers[0].mData = stateInp.audioBufferI16;
+    abl.mBuffers[0].mDataByteSize = count * sizeof(int16_t);
+    abl.mBuffers[0].mNumberChannels = 1;
+
+    err = ExtAudioFileWrite(fref, count, &abl);
+    BAIL_ON_ERR(err, "ExtAudioFileWrite");
+
+    ExtAudioFileDispose(fref);
+    NSLog(@"✅ WAV saved to %@", url.path);
+    return outerr;
+}
+
+
 
 @end
