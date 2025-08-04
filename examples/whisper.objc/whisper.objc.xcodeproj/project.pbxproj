@@ -78,6 +78,7 @@
 		BD3F27372E33118700D3A95B /* ggml-whisper-medicalv3.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv3.bin"; path = "../../models/ggml-whisper-medicalv3.bin"; sourceTree = "<group>"; };
 		BD3F273F2E33E2C800D3A95B /* ggml-whisper-medicalv5-johnyquest7-small.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv5-johnyquest7-small.bin"; path = "../../models/ggml-whisper-medicalv5-johnyquest7-small.bin"; sourceTree = "<group>"; };
 		BD3F27412E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin"; path = "../../models/ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin"; sourceTree = "<group>"; };
+		BD3F27442E41647600D3A95B /* whisper.objc-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "whisper.objc-Bridging-Header.h"; sourceTree = "<group>"; };
 		DDE3609E2D87EA8C004EA223 /* whisper.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = whisper.xcframework; path = "../../build-apple/whisper.xcframework"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -136,6 +137,7 @@
 				18627C8729052BE000BD2A04 /* LaunchScreen.storyboard */,
 				18627C8A29052BE000BD2A04 /* Info.plist */,
 				18627C8B29052BE000BD2A04 /* main.m */,
+				BD3F27442E41647600D3A95B /* whisper.objc-Bridging-Header.h */,
 			);
 			path = whisper.objc;
 			sourceTree = "<group>";
@@ -195,6 +197,7 @@
 				TargetAttributes = {
 					18627C7529052BDF00BD2A04 = {
 						CreatedOnToolsVersion = 14.0.1;
+						LastSwiftMigration = 1620;
 					};
 				};
 			};
@@ -393,6 +396,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P8JZH34X63;
@@ -415,6 +419,9 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.ggerganov.whisper-objc";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "whisper.objc/whisper.objc-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				WARNING_CFLAGS = "-Wno-quoted-include-in-framework-header";
 			};
@@ -426,6 +433,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = P8JZH34X63;
@@ -448,6 +456,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.ggerganov.whisper-objc";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "whisper.objc/whisper.objc-Bridging-Header.h";
+				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				WARNING_CFLAGS = "-Wno-quoted-include-in-framework-header";
 			};
