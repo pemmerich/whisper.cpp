@@ -18,6 +18,8 @@
 		7FE3424B2A0C3FA20015A058 /* whisper-encoder-impl.m in Sources */ = {isa = PBXBuildFile; fileRef = 7FE342452A0C3FA20015A058 /* whisper-encoder-impl.m */; };
 		7FE3424C2A0C3FA20015A058 /* whisper-encoder.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7FE342472A0C3FA20015A058 /* whisper-encoder.mm */; };
 		7FE3424F2A0C418A0015A058 /* ggml-base.en-encoder.mlmodelc in Resources */ = {isa = PBXBuildFile; fileRef = 7FE3424E2A0C418A0015A058 /* ggml-base.en-encoder.mlmodelc */; };
+		BD3F27402E33E2C800D3A95B /* ggml-whisper-medicalv5-johnyquest7-small.bin in Resources */ = {isa = PBXBuildFile; fileRef = BD3F273F2E33E2C800D3A95B /* ggml-whisper-medicalv5-johnyquest7-small.bin */; };
+		BD3F27422E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin in Resources */ = {isa = PBXBuildFile; fileRef = BD3F27412E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin */; };
 		DDE3609F2D87EA8C004EA223 /* whisper.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDE3609E2D87EA8C004EA223 /* whisper.xcframework */; };
 		DDE360A02D87EA8C004EA223 /* whisper.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DDE3609E2D87EA8C004EA223 /* whisper.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
@@ -67,6 +69,15 @@
 		7FE342492A0C3FA20015A058 /* whisper-encoder-impl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "whisper-encoder-impl.h"; sourceTree = "<group>"; };
 		7FE3424A2A0C3FA20015A058 /* whisper-decoder-impl.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "whisper-decoder-impl.m"; sourceTree = "<group>"; };
 		7FE3424E2A0C418A0015A058 /* ggml-base.en-encoder.mlmodelc */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "ggml-base.en-encoder.mlmodelc"; path = "../../../models/ggml-base.en-encoder.mlmodelc"; sourceTree = "<group>"; };
+		BD3F272B2E30064E00D3A95B /* ggml-whisper-medicalv1.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv1.bin"; path = "../../models/ggml-whisper-medicalv1.bin"; sourceTree = "<group>"; };
+		BD3F272D2E30099F00D3A95B /* ggml-whisper-medicalv1.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv1.bin"; path = "../../models/ggml-whisper-medicalv1.bin"; sourceTree = "<group>"; };
+		BD3F272F2E300AF800D3A95B /* ggml-whisper-medicalv1.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv1.bin"; path = "../../models/ggml-whisper-medicalv1.bin"; sourceTree = "<group>"; };
+		BD3F27312E300BB200D3A95B /* ggml-whisper-medicalv1.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv1.bin"; path = "../../models/ggml-whisper-medicalv1.bin"; sourceTree = "<group>"; };
+		BD3F27332E300C3000D3A95B /* ggml-whisper-medicalv1.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv1.bin"; path = "../../models/ggml-whisper-medicalv1.bin"; sourceTree = "<group>"; };
+		BD3F27352E33083F00D3A95B /* ggml-whisper-medicalv2.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv2.bin"; path = "../../models/ggml-whisper-medicalv2.bin"; sourceTree = "<group>"; };
+		BD3F27372E33118700D3A95B /* ggml-whisper-medicalv3.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv3.bin"; path = "../../models/ggml-whisper-medicalv3.bin"; sourceTree = "<group>"; };
+		BD3F273F2E33E2C800D3A95B /* ggml-whisper-medicalv5-johnyquest7-small.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv5-johnyquest7-small.bin"; path = "../../models/ggml-whisper-medicalv5-johnyquest7-small.bin"; sourceTree = "<group>"; };
+		BD3F27412E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin"; path = "../../models/ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin"; sourceTree = "<group>"; };
 		DDE3609E2D87EA8C004EA223 /* whisper.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = whisper.xcframework; path = "../../build-apple/whisper.xcframework"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -85,6 +96,15 @@
 		18627C6D29052BDF00BD2A04 = {
 			isa = PBXGroup;
 			children = (
+				BD3F27412E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin */,
+				BD3F273F2E33E2C800D3A95B /* ggml-whisper-medicalv5-johnyquest7-small.bin */,
+				BD3F27372E33118700D3A95B /* ggml-whisper-medicalv3.bin */,
+				BD3F27352E33083F00D3A95B /* ggml-whisper-medicalv2.bin */,
+				BD3F272B2E30064E00D3A95B /* ggml-whisper-medicalv1.bin */,
+				BD3F272D2E30099F00D3A95B /* ggml-whisper-medicalv1.bin */,
+				BD3F272F2E300AF800D3A95B /* ggml-whisper-medicalv1.bin */,
+				BD3F27312E300BB200D3A95B /* ggml-whisper-medicalv1.bin */,
+				BD3F27332E300C3000D3A95B /* ggml-whisper-medicalv1.bin */,
 				18627C7829052BDF00BD2A04 /* whisper.objc */,
 				DDE3609D2D87EA8C004EA223 /* Frameworks */,
 				18627C7729052BDF00BD2A04 /* Products */,
@@ -202,8 +222,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				18627C8929052BE000BD2A04 /* LaunchScreen.storyboard in Resources */,
+				BD3F27422E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin in Resources */,
 				7FE3424F2A0C418A0015A058 /* ggml-base.en-encoder.mlmodelc in Resources */,
 				18627C8629052BE000BD2A04 /* Assets.xcassets in Resources */,
+				BD3F27402E33E2C800D3A95B /* ggml-whisper-medicalv5-johnyquest7-small.bin in Resources */,
 				18627C8429052BDF00BD2A04 /* Main.storyboard in Resources */,
 				18627C9B29052CFF00BD2A04 /* ggml-base.en.bin in Resources */,
 			);

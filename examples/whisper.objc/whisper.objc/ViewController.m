@@ -51,6 +51,14 @@ void AudioInputCallback(void * inUserData,
     {
         // load the model
         NSString *modelPath = [[NSBundle mainBundle] pathForResource:@"ggml-base.en" ofType:@"bin"];
+        
+        //NSString *modelPath = [[NSBundle mainBundle] pathForResource:@"ggml-whisper-medicalv6" ofType:@"bin"];
+        
+        //NSString *modelPath = [[NSBundle mainBundle] pathForResource:@"ggml-whisper-medicalv5-johnyquest7-small" ofType:@"bin"];
+        
+        //NSString *modelPath = [[NSBundle mainBundle] pathForResource:@"ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3" ofType:@"bin"];
+        
+        
 
         // check if the model exists
         if (![[NSFileManager defaultManager] fileExistsAtPath:modelPath]) {
