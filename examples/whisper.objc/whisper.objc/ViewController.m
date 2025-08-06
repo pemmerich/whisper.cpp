@@ -5,7 +5,7 @@
 #import "ViewController.h"
 #import <whisper/whisper.h>
 #import "whisper_objc-Swift.h" // Swift API access
-#import "whisper.objc-Bridging-Header.h"
+//#import "whisper.objc-Bridging-Header.h"
 
 #define NUM_BYTES_PER_BUFFER (16 * 1024)
 

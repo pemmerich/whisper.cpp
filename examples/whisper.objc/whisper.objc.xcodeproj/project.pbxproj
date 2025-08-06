@@ -22,6 +22,7 @@
 		BD3F27422E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin in Resources */ = {isa = PBXBuildFile; fileRef = BD3F27412E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin */; };
 		BD3F27492E42CE8A00D3A95B /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = BD3F27482E42CE8A00D3A95B /* FluidAudio */; };
 		BD3F274E2E42E03100D3A95B /* whisper.objc-Bridging-Header.h in Sources */ = {isa = PBXBuildFile; fileRef = BD3F27442E41647600D3A95B /* whisper.objc-Bridging-Header.h */; };
+		BD3F27502E43AC5000D3A95B /* DiarizerBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD3F274F2E43AC5000D3A95B /* DiarizerBridge.swift */; };
 		DDE3609F2D87EA8C004EA223 /* whisper.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = DDE3609E2D87EA8C004EA223 /* whisper.xcframework */; };
 		DDE360A02D87EA8C004EA223 /* whisper.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DDE3609E2D87EA8C004EA223 /* whisper.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
@@ -81,6 +82,7 @@
 		BD3F273F2E33E2C800D3A95B /* ggml-whisper-medicalv5-johnyquest7-small.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv5-johnyquest7-small.bin"; path = "../../models/ggml-whisper-medicalv5-johnyquest7-small.bin"; sourceTree = "<group>"; };
 		BD3F27412E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = "ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin"; path = "../../models/ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin"; sourceTree = "<group>"; };
 		BD3F27442E41647600D3A95B /* whisper.objc-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "whisper.objc-Bridging-Header.h"; sourceTree = "<group>"; };
+		BD3F274F2E43AC5000D3A95B /* DiarizerBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiarizerBridge.swift; sourceTree = "<group>"; };
 		DDE3609E2D87EA8C004EA223 /* whisper.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = whisper.xcframework; path = "../../build-apple/whisper.xcframework"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -141,6 +143,7 @@
 				18627C8A29052BE000BD2A04 /* Info.plist */,
 				18627C8B29052BE000BD2A04 /* main.m */,
 				BD3F27442E41647600D3A95B /* whisper.objc-Bridging-Header.h */,
+				BD3F274F2E43AC5000D3A95B /* DiarizerBridge.swift */,
 			);
 			path = whisper.objc;
 			sourceTree = "<group>";
@@ -253,6 +256,7 @@
 				BD3F274E2E42E03100D3A95B /* whisper.objc-Bridging-Header.h in Sources */,
 				18627C8C29052BE000BD2A04 /* main.m in Sources */,
 				18627C7E29052BDF00BD2A04 /* SceneDelegate.m in Sources */,
+				BD3F27502E43AC5000D3A95B /* DiarizerBridge.swift in Sources */,
 				7FE3424B2A0C3FA20015A058 /* whisper-encoder-impl.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -502,8 +506,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/FluidInference/FluidAudio.git";
 			requirement = {
-				branch = main;
-				kind = branch;
+				kind = exactVersion;
+				version = 0.1.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
