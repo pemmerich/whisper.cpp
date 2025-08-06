@@ -7,6 +7,7 @@
 
 #import "ViewController.h"
 #import <whisper/whisper.h>
+#import "whisper_objc-Swift.h"
 
 
 #define NUM_BYTES_PER_BUFFER 16*1024
@@ -195,26 +196,19 @@ void AudioInputCallback(void * inUserData,
 }
 
 - (IBAction)onTranscribe:(id)sender {
-    if (stateInp.isTranscribing) {
-        return;
-    }
+    if (stateInp.isTranscribing) return;
 
     NSLog(@"Processing %d samples", stateInp.n_samples);
-
     stateInp.isTranscribing = true;
 
-    // dispatch the model to a background thread
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        // process captured audio
-        // convert I16 to F32
+        // Convert I16 to F32
         for (int i = 0; i < self->stateInp.n_samples; i++) {
             self->stateInp.audioBufferF32[i] = (float)self->stateInp.audioBufferI16[i] / 32768.0f;
         }
 
-        // run the model
+        // Whisper config
         struct whisper_full_params params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
-
-        // get maximum number of threads on this device (max 8)
         const int max_threads = MIN(8, (int)[[NSProcessInfo processInfo] processorCount]);
 
         params.print_realtime   = true;
@@ -232,51 +226,79 @@ void AudioInputCallback(void * inUserData,
         CFTimeInterval startTime = CACurrentMediaTime();
 
         whisper_reset_timings(self->stateInp.ctx);
-
         if (whisper_full(self->stateInp.ctx, params, self->stateInp.audioBufferF32, self->stateInp.n_samples) != 0) {
             NSLog(@"Failed to run the model");
-            self->_textviewResult.text = @"Failed to run the model";
-
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self->_textviewResult.text = @"Transcription failed.";
+                self->stateInp.isTranscribing = false;
+            });
             return;
         }
 
         whisper_print_timings(self->stateInp.ctx);
-
         CFTimeInterval endTime = CACurrentMediaTime();
 
-        NSLog(@"\nProcessing time: %5.3f, on %d threads", endTime - startTime, params.n_threads);
-
-        // result text
-        NSString *result = @"";
-
-        int n_segments = whisper_full_n_segments(self->stateInp.ctx);
-        for (int i = 0; i < n_segments; i++) {
-            const char * text_cur = whisper_full_get_segment_text(self->stateInp.ctx, i);
-
-            // append the text to the result
-            result = [result stringByAppendingString:[NSString stringWithUTF8String:text_cur]];
+        // Convert float audio to NSArray
+        NSMutableArray *samples = [NSMutableArray arrayWithCapacity:self->stateInp.n_samples];
+        for (int i = 0; i < self->stateInp.n_samples; i++) {
+            [samples addObject:@(self->stateInp.audioBufferF32[i])];
         }
-        
-        // BEGIN INSERTION POINT
-        NSURL *wavURL = [self exportRecordedPCMToWav];
-        if (wavURL) {
-            NSLog(@"✅ Exported WAV: %@", wavURL.path);
-        } else {
-            NSLog(@"❌ exportRecordedPCMToWav returned nil");
-        }
-        // END INSERTION POINT
-        
-        const float tRecording = (float)self->stateInp.n_samples / (float)self->stateInp.dataFormat.mSampleRate;
 
-        // append processing time
-        result = [result stringByAppendingString:[NSString stringWithFormat:@"\n\n[recording time:  %5.3f s]", tRecording]];
-        result = [result stringByAppendingString:[NSString stringWithFormat:@"  \n[processing time: %5.3f s]", endTime - startTime]];
+        NSLog(@"📦 Sending %lu samples to DiarizerBridge...", (unsigned long)[samples count]);
 
-        // dispatch the result to the main thread
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self->_textviewResult.text = result;
-            self->stateInp.isTranscribing = false;
-        });
+        // Call Swift diarization bridge
+        [DiarizerBridge diarizeWithSamples:samples
+                                sampleRate:16000
+                                completion:^(NSArray *segments, NSError *error) {
+            if (error) {
+                NSLog(@"❌ Diarization failed: %@", error);
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    self->_textviewResult.text = @"Diarization failed.";
+                    self->stateInp.isTranscribing = false;
+                });
+                return;
+            }
+
+            NSLog(@"✅ Got %lu diarization segments", (unsigned long)[segments count]);
+
+            // Merge transcript with speaker info
+            NSMutableString *merged = [NSMutableString string];
+            int currentSpeaker = -1;
+            int n_segments = whisper_full_n_segments(self->stateInp.ctx);
+
+            for (int i = 0; i < n_segments; i++) {
+                double t0 = whisper_full_get_segment_t0(self->stateInp.ctx, i);
+                double t1 = whisper_full_get_segment_t1(self->stateInp.ctx, i);
+                double mid = (t0 + t1) * 0.5;
+                const char *text = whisper_full_get_segment_text(self->stateInp.ctx, i);
+
+                NSInteger speaker = -1;
+                for (NSDictionary *seg in segments) {
+                    float start = [seg[@"startTime"] floatValue];
+                    float end   = [seg[@"endTime"] floatValue];
+                    if (mid >= start && mid < end) {
+                        speaker = [seg[@"speakerId"] integerValue];
+                        break;
+                    }
+                }
+
+                if (speaker != currentSpeaker) {
+                    currentSpeaker = speaker;
+                    [merged appendFormat:@"\nSpeaker %ld:\n", (long)speaker];
+                }
+
+                [merged appendFormat:@"%s ", text];
+            }
+
+            float tRecording = (float)self->stateInp.n_samples / (float)self->stateInp.dataFormat.mSampleRate;
+            [merged appendFormat:@"\n\n[recording time:  %5.3f s]", tRecording];
+            [merged appendFormat:@"  \n[processing time: %5.3f s]", endTime - startTime];
+
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self->_textviewResult.text = merged;
+                self->stateInp.isTranscribing = false;
+            });
+        }];
     });
 }
 

@@ -2,18 +2,23 @@ import FluidAudio
 import Foundation
 
 @objc public class DiarizerBridge: NSObject {
-    @MainActor
-    @objc public static func diarize(
+    @objc(diarizeWithSamples:sampleRate:completion:)
+    public static func diarizeWithSamples(
         samples: NSArray,
         sampleRate: Int,
-        completion: @escaping (NSArray?, NSError?) -> Void
+        completion: @escaping @Sendable (NSArray?, NSError?) -> Void
     ) {
-        Task {
+        // ✅ Convert NSArray to Swift-native [Float]
+        let floatSamples: [Float] = samples.compactMap { ($0 as? NSNumber)?.floatValue }
+        let copiedRate = sampleRate
+
+        Task { @Sendable in
             do {
                 let diarizer = DiarizerManager()
                 try await diarizer.initialize()
-                let floats = samples.compactMap { ($0 as? NSNumber)?.floatValue }
-                let result = try await diarizer.performCompleteDiarization(floats, sampleRate: sampleRate)
+
+                let result = try await diarizer.performCompleteDiarization(floatSamples, sampleRate: copiedRate)
+
                 let segments = result.segments.map { seg in
                     return [
                         "speakerId": seg.speakerId,
@@ -21,12 +26,21 @@ import Foundation
                         "endTime": seg.endTimeSeconds
                     ]
                 } as NSArray
-                completion(segments, nil)
+
+                DispatchQueue.main.async {
+                    completion(segments, nil)
+                }
             } catch {
-                completion(nil, error as NSError)
+                DispatchQueue.main.async {
+                    completion(nil, error as NSError)
+                }
             }
         }
     }
 }
+
+
+
+
 
     
