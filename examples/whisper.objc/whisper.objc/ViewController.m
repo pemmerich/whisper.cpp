@@ -460,6 +460,7 @@ void AudioInputCallback(void * inUserData,
              */
             
             //new hybrid approach the accounts for low overlap fallback
+            /*
             for (NSDictionary *entry in transcriptEntries) {
                 double t0 = [entry[@"start"] doubleValue];
                 double t1 = [entry[@"end"] doubleValue];
@@ -520,6 +521,78 @@ void AudioInputCallback(void * inUserData,
 
                 [mergedOutput appendFormat:@"%@\n", text];
             }
+            */
+            
+            // new hybrid approach with mid point buffers falling back to max overlap
+            for (NSDictionary *entry in transcriptEntries) {
+                double t0 = [entry[@"start"] doubleValue];
+                double t1 = [entry[@"end"] doubleValue];
+                NSString *text = entry[@"text"];
+                
+                NSInteger speakerId = -1;
+                double buffer = 0.3; // seconds to shrink from edges
+                double t0_adj = MAX(0.0, t0 + buffer);
+                double t1_adj = MAX(t0_adj, t1 - buffer); // ensure t1_adj >= t0_adj
+                double mid = (t0_adj + t1_adj) / 2.0;
+
+                BOOL usedMidpoint = NO;
+
+                // --- Try midpoint match with buffer ---
+                for (NSDictionary *seg in segments) {
+                    double segStart = [seg[@"startTime"] doubleValue];
+                    double segEnd = [seg[@"endTime"] doubleValue];
+                    
+                    if (mid >= segStart && mid <= segEnd) {
+                        NSString *speakerStr = seg[@"speakerId"];
+                        NSScanner *scanner = [NSScanner scannerWithString:speakerStr];
+                        [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
+                        [scanner scanInteger:&speakerId];
+                        
+                        NSLog(@"🎯 Midpoint match: mid %.3f in [%.3f – %.3f] → Speaker %ld",
+                              mid, segStart, segEnd, (long)speakerId);
+                        usedMidpoint = YES;
+                        break;
+                    }
+                }
+
+                // --- If midpoint failed, try overlap fallback ---
+                if (!usedMidpoint) {
+                    double maxOverlap = 0;
+                    for (NSDictionary *seg in segments) {
+                        double segStart = [seg[@"startTime"] doubleValue];
+                        double segEnd = [seg[@"endTime"] doubleValue];
+
+                        double overlapStart = MAX(t0, segStart);
+                        double overlapEnd = MIN(t1, segEnd);
+                        double overlap = overlapEnd - overlapStart;
+
+                        if (overlap > maxOverlap) {
+                            maxOverlap = overlap;
+
+                            NSString *speakerStr = seg[@"speakerId"];
+                            NSScanner *scanner = [NSScanner scannerWithString:speakerStr];
+                            [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
+                            [scanner scanInteger:&speakerId];
+                        }
+                    }
+                    
+                    if (speakerId != -1) {
+                        NSLog(@"📦 Fallback overlap match: max overlap %.3f → Speaker %ld",
+                              maxOverlap, (long)speakerId);
+                    } else {
+                        NSLog(@"🚨 No match found for segment: %.3f–%.3f", t0, t1);
+                    }
+                }
+
+                // --- Speaker tag and text output ---
+                if (speakerId != lastSpeaker) {
+                    [mergedOutput appendFormat:@"\nSpeaker %ld:\n", (long)speakerId];
+                    lastSpeaker = speakerId;
+                }
+
+                [mergedOutput appendFormat:@"%@\n", text];
+            }
+
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 self->_textviewResult.text = mergedOutput;
