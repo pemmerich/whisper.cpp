@@ -361,7 +361,8 @@ void AudioInputCallback(void * inUserData,
             NSArray *transcriptEntries = [self parsePrintedTranscript:printedTranscript];
             NSMutableString *mergedOutput = [NSMutableString string];
             NSInteger lastSpeaker = -1;
-
+            
+            /*
             for (NSDictionary *entry in transcriptEntries) {
                 double t0 = [entry[@"start"] doubleValue];
                 double t1 = [entry[@"end"] doubleValue];
@@ -390,6 +391,127 @@ void AudioInputCallback(void * inUserData,
                         speakerId = candidateSpeaker;
                     }
                 }
+
+                if (speakerId != lastSpeaker) {
+                    [mergedOutput appendFormat:@"\nSpeaker %ld:\n", (long)speakerId];
+                    lastSpeaker = speakerId;
+                }
+
+                [mergedOutput appendFormat:@"%@\n", text];
+            }
+             */
+            
+            /*
+            //hybrid midpoint logic falling back to overlap
+            for (NSDictionary *entry in transcriptEntries) {
+                double t0 = [entry[@"start"] doubleValue];
+                double t1 = [entry[@"end"] doubleValue];
+                NSString *text = entry[@"text"];
+                
+                double mid = (t0 + t1) / 2.0;
+                NSInteger speakerId = -1;
+                BOOL midMatched = NO;
+                
+                // First try: Midpoint matching
+                for (NSDictionary *seg in segments) {
+                    double segStart = [seg[@"startTime"] doubleValue];
+                    double segEnd = [seg[@"endTime"] doubleValue];
+                    
+                    if (mid >= segStart && mid < segEnd) {
+                        NSString *speakerStr = seg[@"speakerId"];
+                        NSScanner *scanner = [NSScanner scannerWithString:speakerStr];
+                        [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
+                        [scanner scanInteger:&speakerId];
+                        
+                        midMatched = YES;
+                        break;
+                    }
+                }
+                
+                // Fallback: Overlap logic
+                if (!midMatched) {
+                    NSTimeInterval maxOverlap = 0;
+                    for (NSDictionary *seg in segments) {
+                        double segStart = [seg[@"startTime"] doubleValue];
+                        double segEnd = [seg[@"endTime"] doubleValue];
+
+                        double overlapStart = MAX(t0, segStart);
+                        double overlapEnd = MIN(t1, segEnd);
+                        double overlap = overlapEnd - overlapStart;
+
+                        if (overlap > maxOverlap) {
+                            maxOverlap = overlap;
+
+                            NSString *speakerStr = seg[@"speakerId"];
+                            NSScanner *scanner = [NSScanner scannerWithString:speakerStr];
+                            [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
+                            [scanner scanInteger:&speakerId];
+                        }
+                    }
+                }
+
+                if (speakerId != lastSpeaker) {
+                    [mergedOutput appendFormat:@"\nSpeaker %ld:\n", (long)speakerId];
+                    lastSpeaker = speakerId;
+                }
+
+                [mergedOutput appendFormat:@"%@\n", text];
+            }
+             */
+            
+            //new hybrid approach the accounts for low overlap fallback
+            for (NSDictionary *entry in transcriptEntries) {
+                double t0 = [entry[@"start"] doubleValue];
+                double t1 = [entry[@"end"] doubleValue];
+                NSString *text = entry[@"text"];
+                
+                NSInteger speakerId = -1;
+                double mid = (t0 + t1) / 2.0;
+
+                // --- Try midpoint match ---
+                for (NSDictionary *seg in segments) {
+                    double segStart = [seg[@"startTime"] doubleValue];
+                    double segEnd = [seg[@"endTime"] doubleValue];
+                    
+                    if (mid >= segStart && mid <= segEnd) {
+                        NSString *speakerStr = seg[@"speakerId"];
+                        NSScanner *scanner = [NSScanner scannerWithString:speakerStr];
+                        [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
+                        [scanner scanInteger:&speakerId];
+                        
+                        NSLog(@"🎯 Midpoint match: %.3f inside [%.3f – %.3f] → Speaker %ld",
+                              mid, segStart, segEnd, (long)speakerId);
+                        break;
+                    }
+                }
+
+                // --- If midpoint failed, try overlap fallback ---
+                if (speakerId == -1) {
+                    double maxOverlap = 0;
+                    for (NSDictionary *seg in segments) {
+                        double segStart = [seg[@"startTime"] doubleValue];
+                        double segEnd = [seg[@"endTime"] doubleValue];
+
+                        double overlapStart = MAX(t0, segStart);
+                        double overlapEnd = MIN(t1, segEnd);
+                        double overlap = overlapEnd - overlapStart;
+
+                        if (overlap > maxOverlap) {
+                            maxOverlap = overlap;
+
+                            NSString *speakerStr = seg[@"speakerId"];
+                            NSScanner *scanner = [NSScanner scannerWithString:speakerStr];
+                            [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
+                            [scanner scanInteger:&speakerId];
+                        }
+                    }
+                    
+                    if (speakerId != -1) {
+                        NSLog(@"📦 Fallback overlap match: max overlap %.3f → Speaker %ld",
+                              maxOverlap, (long)speakerId);
+                    }
+                }
+
 
                 if (speakerId != lastSpeaker) {
                     [mergedOutput appendFormat:@"\nSpeaker %ld:\n", (long)speakerId];
