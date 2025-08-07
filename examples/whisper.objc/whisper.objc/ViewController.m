@@ -8,6 +8,7 @@
 #import "ViewController.h"
 #import <whisper/whisper.h>
 #import "whisper_objc-Swift.h"
+#import "WhisperOutputRedirector.h"
 
 
 #define NUM_BYTES_PER_BUFFER 16*1024
@@ -220,11 +221,17 @@ void AudioInputCallback(void * inUserData,
         params.n_threads        = max_threads;
         params.offset_ms        = 0;
         params.no_context       = true;
-        params.single_segment   = self->stateInp.isRealtime;
-        params.no_timestamps    = params.single_segment;
+        //params.single_segment   = self->stateInp.isRealtime;
+        //params.no_timestamps    = params.single_segment;
+        params.single_segment   = false;
+        params.no_timestamps    = false;
+    
 
         CFTimeInterval startTime = CACurrentMediaTime();
-
+        
+        NSString *outputPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"whisper-transcript.txt"];
+        [WhisperOutputRedirector redirectStdoutToFileAtPath:outputPath];
+        
         whisper_reset_timings(self->stateInp.ctx);
         if (whisper_full(self->stateInp.ctx, params, self->stateInp.audioBufferF32, self->stateInp.n_samples) != 0) {
             NSLog(@"Failed to run the model");
@@ -234,7 +241,11 @@ void AudioInputCallback(void * inUserData,
             });
             return;
         }
+        
+        [WhisperOutputRedirector restoreStdout];
 
+        NSLog(@"✅ Whisper Print Out transcript saved to %@", outputPath);
+        
         whisper_print_timings(self->stateInp.ctx);
         CFTimeInterval endTime = CACurrentMediaTime();
 
@@ -256,17 +267,35 @@ void AudioInputCallback(void * inUserData,
         
         NSMutableString *whisperOutput = [NSMutableString string];
         int totalSegments = whisper_full_n_segments(self->stateInp.ctx);
-        double whisperFrameDuration = 0.16; // 16ms per frame
+        double whisperFrameDuration = 0.016; // 16ms per frame
 
         for (int i = 0; i < totalSegments; i++) {
             
-            double t0 = whisper_full_get_segment_t0(self->stateInp.ctx, i) * whisperFrameDuration;
-            double t1 = whisper_full_get_segment_t1(self->stateInp.ctx, i) * whisperFrameDuration;
+            double t0 = whisper_full_get_segment_t0(self->stateInp.ctx, i);
+            double t1 = whisper_full_get_segment_t1(self->stateInp.ctx, i);
             const char *text = whisper_full_get_segment_text(self->stateInp.ctx, i);
-            [whisperOutput appendFormat:@"%.3f --> %.3f: %s\n", t0, t1, text];
+            NSLog(@"Raw Segment %i Raw frame t0 = %f, t1 = %f",i, t0, t1);
             
-            NSLog(@"Raw frame t0 = %d, t1 = %d", t0, t1);
-            NSLog(@"Computed seconds t0 = %.3f, t1 = %.3f", t0 * whisperFrameDuration, t1 * whisperFrameDuration);
+            double t0_sec = t0 * whisperFrameDuration;
+            double t1_sec = t1 * whisperFrameDuration;
+            
+            //make sure we're gettign valid timestamp frames
+            if (t0_sec < 0 || t1_sec < 0 || t1_sec < t0_sec) {
+                    NSLog(@"🚨 Invalid segment timing: t0 = %d, t1 = %d", t0_sec, t1_sec);
+                    continue;
+                }
+            
+            //[whisperOutput appendFormat:@"%.3f --> %.3f: %s\n", t0, t1, text];
+            [whisperOutput appendFormat:@"[%02d:%02d:%06.3f --> %02d:%02d:%06.3f]   %s\n",
+                    (int)(t0_sec / 3600), ((int)(t0_sec) % 3600) / 60, fmod(t0, 60),
+                    (int)(t1_sec / 3600), ((int)(t1_sec) % 3600) / 60, fmod(t1, 60),
+                    text];
+            
+            double durationSec = (double)stateInp.n_samples / 16000.0;
+            NSLog(@"🔍 Total audio duration = %.2f sec", durationSec);
+            
+            
+            NSLog(@"Computed seconds t0 = %.3f, t1 = %.3f", t0_sec, t1_sec);
 
         }
 
@@ -398,8 +427,10 @@ void AudioInputCallback(void * inUserData,
                 
                 //using overlap logic
                 
-                double startSec = t0 * whisperFrameDuration + timeOffset;
-                double endSec = t1 * whisperFrameDuration + timeOffset;
+                //double startSec = t0_sec + timeOffset;
+                //double endSec = t0_sec + timeOffset;
+                double startSec = t0_sec;
+                double endSec = t0_sec;
 
                 NSInteger speakerId = -1;
                 NSTimeInterval maxOverlap = 0;
