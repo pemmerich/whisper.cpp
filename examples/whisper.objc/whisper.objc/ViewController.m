@@ -243,7 +243,32 @@ void AudioInputCallback(void * inUserData,
         for (int i = 0; i < self->stateInp.n_samples; i++) {
             [samples addObject:@(self->stateInp.audioBufferF32[i])];
         }
+        
+        //export whisper transcript
+        
+        NSMutableString *whisperOutput = [NSMutableString string];
+        int totalSegments = whisper_full_n_segments(self->stateInp.ctx);
+        double whisperFrameDuration = 0.02; // 20ms per frame
 
+        for (int i = 0; i < totalSegments; i++) {
+            double t0 = whisper_full_get_segment_t0(self->stateInp.ctx, i) * whisperFrameDuration;
+            double t1 = whisper_full_get_segment_t1(self->stateInp.ctx, i) * whisperFrameDuration;
+            const char *text = whisper_full_get_segment_text(self->stateInp.ctx, i);
+            [whisperOutput appendFormat:@"%.3f --> %.3f: %s\n", t0, t1, text];
+        }
+
+        // Save to file
+        NSError *whisperErr = nil;
+        NSString *whisperFilename = [NSString stringWithFormat:@"whisper-raw-%@.txt", [NSUUID UUID].UUIDString];
+        NSURL *whisperURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject URLByAppendingPathComponent:whisperFilename];
+        BOOL whisperSaved = [whisperOutput writeToURL:whisperURL atomically:YES encoding:NSUTF8StringEncoding error:&whisperErr];
+        if (whisperSaved) {
+            NSLog(@"✅ Whisper raw transcript exported: %@", whisperURL.path);
+        } else {
+            NSLog(@"❌ Whisper export failed: %@", whisperErr);
+        }
+
+        
         NSLog(@"📦 Sending %lu samples to DiarizerBridge...", (unsigned long)[samples count]);
         
         // Call Swift diarization bridge
@@ -259,6 +284,28 @@ void AudioInputCallback(void * inUserData,
                 return;
             }
             NSLog(@"📊 Raw diarization segments:\n%@", segments);
+            
+            //export raw diarization to file
+            
+            NSMutableString *diarizationOutput = [NSMutableString string];
+            for (NSDictionary *seg in segments) {
+                double start = [seg[@"startTime"] doubleValue];
+                double end = [seg[@"endTime"] doubleValue];
+                NSString *speaker = seg[@"speakerId"];
+                [diarizationOutput appendFormat:@"%@: %.3f --> %.3f\n", speaker, start, end];
+            }
+
+            // Save to file
+            NSError *diarErr = nil;
+            NSString *diarFilename = [NSString stringWithFormat:@"diarization-raw-%@.txt", [NSUUID UUID].UUIDString];
+            NSURL *diarURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject URLByAppendingPathComponent:diarFilename];
+            BOOL diarSaved = [diarizationOutput writeToURL:diarURL atomically:YES encoding:NSUTF8StringEncoding error:&diarErr];
+            if (diarSaved) {
+                NSLog(@"✅ Diarization segments exported: %@", diarURL.path);
+            } else {
+                NSLog(@"❌ Diarization export failed: %@", diarErr);
+            }
+
             
             // 🎙 Merge transcript with speaker labels
             NSMutableString *output = [NSMutableString string];
@@ -278,9 +325,19 @@ void AudioInputCallback(void * inUserData,
                 double t0 = whisper_full_get_segment_t0(self->stateInp.ctx, i);
                 double t1 = whisper_full_get_segment_t1(self->stateInp.ctx, i);
                 const char *text = whisper_full_get_segment_text(self->stateInp.ctx, i);
-                double whisperFrameDuration = 0.016; // 16ms per frame
-                double mid = ((t0 + t1) * 0.5 * whisperFrameDuration) + timeOffset;
-                NSLog(@"🔍 Segment %d: t0 = %.2f, t1 = %.2f, mid = %.2f (s)", i, t0 * whisperFrameDuration, t1 * whisperFrameDuration, mid);
+                double whisperFrameDuration = 0.02; // 20ms per frame
+                //double mid = ((t0 + t1) * 0.5 * whisperFrameDuration) + timeOffset;
+                double t0_sec = t0 * whisperFrameDuration;
+                double t1_sec = t1 * whisperFrameDuration;
+                
+                
+                /*
+                //using mid logic
+                 
+                double mid = (t0_sec + t1_sec) / 2.0 + timeOffset;
+                NSLog(@"🔍 Segment %d: t0 = %.2f, t1 = %.2f, mid = %.2f",
+                      i, t0_sec, t1_sec, mid);
+
 
 
                 NSInteger speakerId = -1;
@@ -289,10 +346,7 @@ void AudioInputCallback(void * inUserData,
                 // 🔍 Find matching diarization segment
                 // Fallback to closest diarization segment if no match
                 for (NSDictionary *seg in segments) {
-                    NSLog(@"   🧭 Diarizer seg: start = %.2f, end = %.2f, speaker = %@",
-                          [seg[@"startTime"] doubleValue],
-                          [seg[@"endTime"] doubleValue],
-                          seg[@"speakerId"]);
+                   
                     
                     double start = [seg[@"startTime"] doubleValue];
                     double end = [seg[@"endTime"] doubleValue];
@@ -303,11 +357,14 @@ void AudioInputCallback(void * inUserData,
                     [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
                     NSInteger candidateSpeaker = -1;
                     [scanner scanInteger:&candidateSpeaker];
-
+                    
+                    NSLog(@"🧭 Diarizer seg: start = %.2f, end = %.2f, speaker = %@",
+                          start, end, speakerStr);
+                    
                     // Check if mid falls inside this segment
                     if (mid >= start && mid < end) {
                         speakerId = candidateSpeaker;
-                        NSLog(@"🎤 Segment %d: %.2f–%.2f → speaker %ld", i, t0, t1, (long)speakerId);
+                        NSLog(@"🎤Mid Match! Segment %d: %.2f–%.2f → speaker %ld", i, t0, t1, (long)speakerId);
                         break;
                     }
 
@@ -324,6 +381,49 @@ void AudioInputCallback(void * inUserData,
                 if (speakerId == -1) {
                     NSLog(@"🚨 No diarization match for mid %.2f – using fallback speaker %ld", mid, (long)speakerId);
                 }
+                */
+                
+                //using overlap logic
+                
+                double startSec = t0 * whisperFrameDuration + timeOffset;
+                double endSec = t1 * whisperFrameDuration + timeOffset;
+
+                NSInteger speakerId = -1;
+                NSTimeInterval maxOverlap = 0;
+
+                for (NSDictionary *seg in segments) {
+                    double segStart = [seg[@"startTime"] doubleValue];
+                    double segEnd = [seg[@"endTime"] doubleValue];
+
+                    NSString *speakerStr = seg[@"speakerId"];
+                    NSScanner *scanner = [NSScanner scannerWithString:speakerStr];
+                    [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
+                    NSInteger candidateSpeaker = -1;
+                    [scanner scanInteger:&candidateSpeaker];
+
+                    // Overlap calculation
+                    double overlapStart = MAX(startSec, segStart);
+                    double overlapEnd = MIN(endSec, segEnd);
+                    double overlap = overlapEnd - overlapStart;
+                    
+                    if (overlap > 0) {
+                        NSLog(@"🔄 Overlap with %@: transcript[%.2f–%.2f] vs diarizer[%.2f–%.2f] → %.2f seconds",
+                                  speakerStr, startSec, endSec, segStart, segEnd, overlap);
+                    }
+
+
+                    if (overlap > maxOverlap) {
+                        maxOverlap = overlap;
+                        speakerId = candidateSpeaker;
+                    }
+                }
+
+                if (speakerId == -1) {
+                    NSLog(@"🚨 No overlap match for segment %.2f–%.2f", startSec, endSec);
+                } else {
+                    NSLog(@"🎤 Segment %d: %.2f–%.2f → speaker %ld", i, startSec, endSec, (long)speakerId);
+                }
+
                 
                 // 🏷 If speaker changed or wasn't yet set, print label
                 if (i == 0 || speakerId != lastSpeaker) {
@@ -333,10 +433,11 @@ void AudioInputCallback(void * inUserData,
 
                 [output appendFormat:@"%s ", text];
             }
-
+            
+                
             // 📁 Export the result to a .txt file
             NSError *writeErr = nil;
-            NSString *filename = [NSString stringWithFormat:@"diarized-%@.txt", [NSUUID UUID].UUIDString];
+            NSString *filename = [NSString stringWithFormat:@"transcript-diarized-%@.txt", [NSUUID UUID].UUIDString];
             NSURL *docs = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
             NSURL *fileURL = [docs URLByAppendingPathComponent:filename];
             BOOL success = [output writeToURL:fileURL atomically:YES encoding:NSUTF8StringEncoding error:&writeErr];
