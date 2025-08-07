@@ -245,6 +245,14 @@ void AudioInputCallback(void * inUserData,
         [WhisperOutputRedirector restoreStdout];
 
         NSLog(@"✅ Whisper Print Out transcript saved to %@", outputPath);
+        NSError *readError = nil;
+        NSString *printedTranscript = [NSString stringWithContentsOfFile:outputPath encoding:NSUTF8StringEncoding error:&readError];
+        if (readError) {
+            NSLog(@"❌ Failed to read whisper transcript: %@", readError);
+        } else {
+            NSLog(@"📄 Loaded printed transcript, length = %lu", (unsigned long)printedTranscript.length);
+        }
+        
         
         whisper_print_timings(self->stateInp.ctx);
         CFTimeInterval endTime = CACurrentMediaTime();
@@ -349,6 +357,8 @@ void AudioInputCallback(void * inUserData,
             }
 
             
+            /*
+             
             // 🎙 Merge transcript with speaker labels
             NSMutableString *output = [NSMutableString string];
             int totalSegments = whisper_full_n_segments(self->stateInp.ctx);
@@ -373,57 +383,57 @@ void AudioInputCallback(void * inUserData,
                 double t1_sec = t1 * whisperFrameDuration;
                 
                 
-                /*
+                
                 //using mid logic
                  
-                double mid = (t0_sec + t1_sec) / 2.0 + timeOffset;
-                NSLog(@"🔍 Segment %d: t0 = %.2f, t1 = %.2f, mid = %.2f",
-                      i, t0_sec, t1_sec, mid);
-
-
-
-                NSInteger speakerId = -1;
-                double bestDistance = DBL_MAX;
-
-                // 🔍 Find matching diarization segment
-                // Fallback to closest diarization segment if no match
-                for (NSDictionary *seg in segments) {
-                   
-                    
-                    double start = [seg[@"startTime"] doubleValue];
-                    double end = [seg[@"endTime"] doubleValue];
-
-                    // Try to extract speaker number from string like "Speaker 1"
-                    NSString *speakerStr = seg[@"speakerId"];
-                    NSScanner *scanner = [NSScanner scannerWithString:speakerStr];
-                    [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
-                    NSInteger candidateSpeaker = -1;
-                    [scanner scanInteger:&candidateSpeaker];
-                    
-                    NSLog(@"🧭 Diarizer seg: start = %.2f, end = %.2f, speaker = %@",
-                          start, end, speakerStr);
-                    
-                    // Check if mid falls inside this segment
-                    if (mid >= start && mid < end) {
-                        speakerId = candidateSpeaker;
-                        NSLog(@"🎤Mid Match! Segment %d: %.2f–%.2f → speaker %ld", i, t0, t1, (long)speakerId);
-                        break;
-                    }
-
-                    // Or: track closest segment by midpoint distance
-                    //double segMid = (start + end) / 2.0;
-                    double segMid = (start + end) / 2.0;
-                    double distance = fabs(mid - segMid);
-                    if (distance < bestDistance) {
-                        bestDistance = distance;
-                        speakerId = candidateSpeaker;
-                    }
-                }
+//                double mid = (t0_sec + t1_sec) / 2.0 + timeOffset;
+//                NSLog(@"🔍 Segment %d: t0 = %.2f, t1 = %.2f, mid = %.2f",
+//                      i, t0_sec, t1_sec, mid);
+//
+//
+//
+//                NSInteger speakerId = -1;
+//                double bestDistance = DBL_MAX;
+//
+//                // 🔍 Find matching diarization segment
+//                // Fallback to closest diarization segment if no match
+//                for (NSDictionary *seg in segments) {
+//                   
+//                    
+//                    double start = [seg[@"startTime"] doubleValue];
+//                    double end = [seg[@"endTime"] doubleValue];
+//
+//                    // Try to extract speaker number from string like "Speaker 1"
+//                    NSString *speakerStr = seg[@"speakerId"];
+//                    NSScanner *scanner = [NSScanner scannerWithString:speakerStr];
+//                    [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
+//                    NSInteger candidateSpeaker = -1;
+//                    [scanner scanInteger:&candidateSpeaker];
+//                    
+//                    NSLog(@"🧭 Diarizer seg: start = %.2f, end = %.2f, speaker = %@",
+//                          start, end, speakerStr);
+//                    
+//                    // Check if mid falls inside this segment
+//                    if (mid >= start && mid < end) {
+//                        speakerId = candidateSpeaker;
+//                        NSLog(@"🎤Mid Match! Segment %d: %.2f–%.2f → speaker %ld", i, t0, t1, (long)speakerId);
+//                        break;
+//                    }
+//
+//                    // Or: track closest segment by midpoint distance
+//                    //double segMid = (start + end) / 2.0;
+//                    double segMid = (start + end) / 2.0;
+//                    double distance = fabs(mid - segMid);
+//                    if (distance < bestDistance) {
+//                        bestDistance = distance;
+//                        speakerId = candidateSpeaker;
+//                    }
+//                }
+//                
+//                if (speakerId == -1) {
+//                    NSLog(@"🚨 No diarization match for mid %.2f – using fallback speaker %ld", mid, (long)speakerId);
+//                }
                 
-                if (speakerId == -1) {
-                    NSLog(@"🚨 No diarization match for mid %.2f – using fallback speaker %ld", mid, (long)speakerId);
-                }
-                */
                 
                 //using overlap logic
                 
@@ -478,7 +488,7 @@ void AudioInputCallback(void * inUserData,
                 [output appendFormat:@"%s ", text];
             }
             
-                
+            
             // 📁 Export the result to a .txt file
             NSError *writeErr = nil;
             NSString *filename = [NSString stringWithFormat:@"transcript-diarized-%@.txt", [NSUUID UUID].UUIDString];
@@ -497,6 +507,67 @@ void AudioInputCallback(void * inUserData,
 
                 self->stateInp.isTranscribing = false;
             });
+             */
+            
+            // new merge logic using whisper print output
+            NSArray *transcriptEntries = [self parsePrintedTranscript:printedTranscript];
+            NSMutableString *mergedOutput = [NSMutableString string];
+            NSInteger lastSpeaker = -1;
+
+            for (NSDictionary *entry in transcriptEntries) {
+                double t0 = [entry[@"start"] doubleValue];
+                double t1 = [entry[@"end"] doubleValue];
+                NSString *text = entry[@"text"];
+                
+                NSInteger speakerId = -1;
+                NSTimeInterval maxOverlap = 0;
+
+                for (NSDictionary *seg in segments) {
+                    double segStart = [seg[@"startTime"] doubleValue];
+                    double segEnd = [seg[@"endTime"] doubleValue];
+
+                    NSString *speakerStr = seg[@"speakerId"];
+                    NSScanner *scanner = [NSScanner scannerWithString:speakerStr];
+                    [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
+                    NSInteger candidateSpeaker = -1;
+                    [scanner scanInteger:&candidateSpeaker];
+
+                    // Calculate overlap
+                    double overlapStart = MAX(t0, segStart);
+                    double overlapEnd = MIN(t1, segEnd);
+                    double overlap = overlapEnd - overlapStart;
+                    
+                    if (overlap > maxOverlap) {
+                        maxOverlap = overlap;
+                        speakerId = candidateSpeaker;
+                    }
+                }
+
+                if (speakerId != lastSpeaker) {
+                    [mergedOutput appendFormat:@"\nSpeaker %ld:\n", (long)speakerId];
+                    lastSpeaker = speakerId;
+                }
+
+                [mergedOutput appendFormat:@"%@\n", text];
+            }
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self->_textviewResult.text = mergedOutput;
+
+                NSString *mergedFilename = [NSString stringWithFormat:@"merged-transcript-%@.txt", [NSUUID UUID].UUIDString];
+                NSURL *mergedURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject URLByAppendingPathComponent:mergedFilename];
+                
+                NSError *writeErr = nil;
+                [mergedOutput writeToURL:mergedURL atomically:YES encoding:NSUTF8StringEncoding error:&writeErr];
+                
+                if (!writeErr) {
+                    NSLog(@"✅ Merged diarized transcript saved to %@", mergedURL.path);
+                } else {
+                    NSLog(@"❌ Failed to save merged transcript: %@", writeErr);
+                }
+            });
+            
+            
         }];
 
 
@@ -562,6 +633,31 @@ void AudioInputCallback(void * inUserData,
     if (fref) ExtAudioFileDispose(fref); \
     return nil; \
   }
+
+- (NSArray<NSDictionary *> *)parsePrintedTranscript:(NSString *)transcript {
+    NSMutableArray *results = [NSMutableArray array];
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"\\[(\\d{2}):(\\d{2}):(\\d{2}\\.\\d{3}) --> (\\d{2}):(\\d{2}):(\\d{2}\\.\\d{3})\\]\\s+(.*)"
+                                                                           options:0
+                                                                             error:nil];
+    
+    NSArray *lines = [transcript componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]];
+    for (NSString *line in lines) {
+        NSTextCheckingResult *match = [regex firstMatchInString:line options:0 range:NSMakeRange(0, line.length)];
+        if (match.numberOfRanges == 8) {
+            double t0 = [line substringWithRange:[match rangeAtIndex:1]].doubleValue * 3600 +
+                        [line substringWithRange:[match rangeAtIndex:2]].doubleValue * 60 +
+                        [line substringWithRange:[match rangeAtIndex:3]].doubleValue;
+            double t1 = [line substringWithRange:[match rangeAtIndex:4]].doubleValue * 3600 +
+                        [line substringWithRange:[match rangeAtIndex:5]].doubleValue * 60 +
+                        [line substringWithRange:[match rangeAtIndex:6]].doubleValue;
+            NSString *text = [line substringWithRange:[match rangeAtIndex:7]];
+
+            [results addObject:@{ @"start": @(t0), @"end": @(t1), @"text": text }];
+        }
+    }
+    return results;
+}
+
 
 - (NSURL*)exportRecordedPCMToWav {
     UInt32 count = stateInp.n_samples;
