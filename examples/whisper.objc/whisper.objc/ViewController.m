@@ -244,17 +244,30 @@ void AudioInputCallback(void * inUserData,
             [samples addObject:@(self->stateInp.audioBufferF32[i])];
         }
         
+        //export wav file
+        NSURL *wavURL = [self exportRecordedPCMToWav];
+        if (wavURL) {
+            NSLog(@"✅ Exported WAV: %@", wavURL.path);
+        } else {
+            NSLog(@"❌ exportRecordedPCMToWav returned nil");
+        }
+        
         //export whisper transcript
         
         NSMutableString *whisperOutput = [NSMutableString string];
         int totalSegments = whisper_full_n_segments(self->stateInp.ctx);
-        double whisperFrameDuration = 0.02; // 20ms per frame
+        double whisperFrameDuration = 0.16; // 16ms per frame
 
         for (int i = 0; i < totalSegments; i++) {
+            
             double t0 = whisper_full_get_segment_t0(self->stateInp.ctx, i) * whisperFrameDuration;
             double t1 = whisper_full_get_segment_t1(self->stateInp.ctx, i) * whisperFrameDuration;
             const char *text = whisper_full_get_segment_text(self->stateInp.ctx, i);
             [whisperOutput appendFormat:@"%.3f --> %.3f: %s\n", t0, t1, text];
+            
+            NSLog(@"Raw frame t0 = %d, t1 = %d", t0, t1);
+            NSLog(@"Computed seconds t0 = %.3f, t1 = %.3f", t0 * whisperFrameDuration, t1 * whisperFrameDuration);
+
         }
 
         // Save to file
