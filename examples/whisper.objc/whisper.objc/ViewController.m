@@ -245,7 +245,7 @@ void AudioInputCallback(void * inUserData,
         }
 
         NSLog(@"📦 Sending %lu samples to DiarizerBridge...", (unsigned long)[samples count]);
-
+        
         // Call Swift diarization bridge
         [DiarizerBridge diarizeWithSamples:samples
                                 sampleRate:16000
@@ -258,47 +258,104 @@ void AudioInputCallback(void * inUserData,
                 });
                 return;
             }
+            NSLog(@"📊 Raw diarization segments:\n%@", segments);
+            
+            // 🎙 Merge transcript with speaker labels
+            NSMutableString *output = [NSMutableString string];
+            int totalSegments = whisper_full_n_segments(self->stateInp.ctx);
+            NSInteger lastSpeaker = -1;
+            
+            double timeOffset = 0.0;
+            if (segments.count > 0) {
+                NSDictionary *firstSeg = segments[0];
+                timeOffset = [firstSeg[@"startTime"] doubleValue] - 0.5; // buffer
+            }
+            
+            NSLog(@"⏱️ Applying timeOffset: %.2f", timeOffset);
 
-            NSLog(@"✅ Got %lu diarization segments", (unsigned long)[segments count]);
-
-            // Merge transcript with speaker info
-            NSMutableString *merged = [NSMutableString string];
-            int currentSpeaker = -1;
-            int n_segments = whisper_full_n_segments(self->stateInp.ctx);
-
-            for (int i = 0; i < n_segments; i++) {
+            
+            for (int i = 0; i < totalSegments; i++) {
                 double t0 = whisper_full_get_segment_t0(self->stateInp.ctx, i);
                 double t1 = whisper_full_get_segment_t1(self->stateInp.ctx, i);
-                double mid = (t0 + t1) * 0.5;
                 const char *text = whisper_full_get_segment_text(self->stateInp.ctx, i);
+                double whisperFrameDuration = 0.016; // 16ms per frame
+                double mid = ((t0 + t1) * 0.5 * whisperFrameDuration) + timeOffset;
+                NSLog(@"🔍 Segment %d: t0 = %.2f, t1 = %.2f, mid = %.2f (s)", i, t0 * whisperFrameDuration, t1 * whisperFrameDuration, mid);
 
-                NSInteger speaker = -1;
+
+                NSInteger speakerId = -1;
+                double bestDistance = DBL_MAX;
+
+                // 🔍 Find matching diarization segment
+                // Fallback to closest diarization segment if no match
                 for (NSDictionary *seg in segments) {
-                    float start = [seg[@"startTime"] floatValue];
-                    float end   = [seg[@"endTime"] floatValue];
+                    NSLog(@"   🧭 Diarizer seg: start = %.2f, end = %.2f, speaker = %@",
+                          [seg[@"startTime"] doubleValue],
+                          [seg[@"endTime"] doubleValue],
+                          seg[@"speakerId"]);
+                    
+                    double start = [seg[@"startTime"] doubleValue];
+                    double end = [seg[@"endTime"] doubleValue];
+
+                    // Try to extract speaker number from string like "Speaker 1"
+                    NSString *speakerStr = seg[@"speakerId"];
+                    NSScanner *scanner = [NSScanner scannerWithString:speakerStr];
+                    [scanner scanUpToCharactersFromSet:[NSCharacterSet decimalDigitCharacterSet] intoString:nil];
+                    NSInteger candidateSpeaker = -1;
+                    [scanner scanInteger:&candidateSpeaker];
+
+                    // Check if mid falls inside this segment
                     if (mid >= start && mid < end) {
-                        speaker = [seg[@"speakerId"] integerValue];
+                        speakerId = candidateSpeaker;
+                        NSLog(@"🎤 Segment %d: %.2f–%.2f → speaker %ld", i, t0, t1, (long)speakerId);
                         break;
                     }
+
+                    // Or: track closest segment by midpoint distance
+                    //double segMid = (start + end) / 2.0;
+                    double segMid = (start + end) / 2.0;
+                    double distance = fabs(mid - segMid);
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        speakerId = candidateSpeaker;
+                    }
+                }
+                
+                if (speakerId == -1) {
+                    NSLog(@"🚨 No diarization match for mid %.2f – using fallback speaker %ld", mid, (long)speakerId);
+                }
+                
+                // 🏷 If speaker changed or wasn't yet set, print label
+                if (i == 0 || speakerId != lastSpeaker) {
+                    [output appendFormat:@"\nSpeaker %ld:\n", (long)speakerId];
+                    lastSpeaker = speakerId;
                 }
 
-                if (speaker != currentSpeaker) {
-                    currentSpeaker = speaker;
-                    [merged appendFormat:@"\nSpeaker %ld:\n", (long)speaker];
-                }
-
-                [merged appendFormat:@"%s ", text];
+                [output appendFormat:@"%s ", text];
             }
 
-            float tRecording = (float)self->stateInp.n_samples / (float)self->stateInp.dataFormat.mSampleRate;
-            [merged appendFormat:@"\n\n[recording time:  %5.3f s]", tRecording];
-            [merged appendFormat:@"  \n[processing time: %5.3f s]", endTime - startTime];
+            // 📁 Export the result to a .txt file
+            NSError *writeErr = nil;
+            NSString *filename = [NSString stringWithFormat:@"diarized-%@.txt", [NSUUID UUID].UUIDString];
+            NSURL *docs = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
+            NSURL *fileURL = [docs URLByAppendingPathComponent:filename];
+            BOOL success = [output writeToURL:fileURL atomically:YES encoding:NSUTF8StringEncoding error:&writeErr];
 
             dispatch_async(dispatch_get_main_queue(), ^{
-                self->_textviewResult.text = merged;
+                self->_textviewResult.text = output;
+
+                if (success) {
+                    NSLog(@"✅ Transcript exported: %@", fileURL.path);
+                } else {
+                    NSLog(@"❌ Failed to export transcript: %@", writeErr);
+                }
+
                 self->stateInp.isTranscribing = false;
             });
         }];
+
+
+
     });
 }
 
