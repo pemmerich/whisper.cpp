@@ -618,6 +618,38 @@ void AudioInputCallback(void * inUserData,
     });
 }
 
+
+- (IBAction)testSummarizeTranscript:(id)sender {
+    NSURL *latestURL = [self latestDiarizedTranscriptURL];
+    if (!latestURL) {
+        NSLog(@"❌ No diarized transcript found.");
+        return;
+    }
+
+    NSError *readErr = nil;
+    NSString *rawTranscript = [NSString stringWithContentsOfURL:latestURL encoding:NSUTF8StringEncoding error:&readErr];
+    if (readErr || !rawTranscript.length) {
+        NSLog(@"❌ Failed to read latest transcript: %@", readErr);
+        return;
+    }
+
+    NSLog(@"📄 Loaded transcript from: %@", latestURL.path);
+    
+    _textviewResult.text = rawTranscript;
+    
+    NSString *prompt = [NSString stringWithFormat:
+        @"Here is a diarized transcript of a conversation:\n\n%@\n\n"
+        "Please do the following:\n"
+        "1. Clean up the grammar and remove filler phrases.\n"
+        "2. Preserve speaker identities clearly.\n"
+        "3. At the end, provide a concise summary of the key points discussed.\n",
+        rawTranscript];
+
+    // 🔥 Send prompt to OpenAI
+    //[self callOpenAIWithPrompt:prompt];
+}
+
+
 //
 // Callback implementation
 //
@@ -756,6 +788,25 @@ void AudioInputCallback(void * inUserData,
     return outerr;
 }
 
+- (NSURL *)latestDiarizedTranscriptURL {
+    NSURL *docs = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
+    NSArray *contents = [[NSFileManager defaultManager] contentsOfDirectoryAtURL:docs
+                                                       includingPropertiesForKeys:@[NSURLContentModificationDateKey]
+                                                                          options:NSDirectoryEnumerationSkipsHiddenFiles
+                                                                            error:nil];
+    
+    NSPredicate *filter = [NSPredicate predicateWithFormat:@"lastPathComponent BEGINSWITH %@", @"merged-transcript-"];
+    NSArray *filtered = [contents filteredArrayUsingPredicate:filter];
+    
+    NSArray *sorted = [filtered sortedArrayUsingComparator:^NSComparisonResult(NSURL *a, NSURL *b) {
+        NSDate *dateA, *dateB;
+        [a getResourceValue:&dateA forKey:NSURLContentModificationDateKey error:nil];
+        [b getResourceValue:&dateB forKey:NSURLContentModificationDateKey error:nil];
+        return [dateB compare:dateA]; // descending
+    }];
+    
+    return sorted.firstObject;
+}
 
 
 @end

@@ -36,10 +36,10 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" text="Record some speech and press &quot;Transcribe&quot;. The result will be displayed here." textAlignment="natural" translatesAutoresizingMaskIntoConstraints="NO" id="mv2-KD-7jn">
-                                <rect key="frame" x="35" y="248" width="320" height="300"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                            <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" keyboardDismissMode="onDrag" editable="NO" text="Record some speech and press &quot;Transcribe&quot;. The result will be displayed here." textAlignment="natural" translatesAutoresizingMaskIntoConstraints="NO" id="mv2-KD-7jn">
+                                <rect key="frame" x="35" y="248" width="320" height="475"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <color key="backgroundColor" systemColor="lightTextColor"/>
                                 <color key="textColor" systemColor="labelColor"/>
                                 <fontDescription key="fontDescription" name="Georgia" family="Georgia" pointSize="16"/>
                                 <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
@@ -55,6 +55,18 @@
                                 <connections>
                                     <action selector="onTranscribe:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ond-bx-48O"/>
                                     <action selector="onTranscribePrepare:" destination="BYZ-38-t0r" eventType="touchDown" id="16T-dN-dfB"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" id="Kau-f3-tTU" userLabel="Button Test">
+                                <rect key="frame" x="199" y="191" width="156" height="49"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" systemColor="opaqueSeparatorColor"/>
+                                <color key="tintColor" systemColor="opaqueSeparatorColor"/>
+                                <state key="normal" title="Test Transcribe">
+                                    <color key="titleColor" systemColor="labelColor"/>
+                                </state>
+                                <connections>
+                                    <action selector="testSummarizeTranscript:" destination="BYZ-38-t0r" eventType="touchUpInside" id="x5K-y7-uKp"/>
                                 </connections>
                             </button>
                         </subviews>
@@ -79,6 +91,9 @@
     <resources>
         <systemColor name="labelColor">
             <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+        <systemColor name="lightTextColor">
+            <color white="1" alpha="0.59999999999999998" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
         <systemColor name="opaqueSeparatorColor">
             <color red="0.77647058823529413" green="0.77647058823529413" blue="0.78431372549019607" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
