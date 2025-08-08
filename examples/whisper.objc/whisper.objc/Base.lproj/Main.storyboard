@@ -73,8 +73,9 @@
                                 <rect key="frame" x="199" y="120" width="156" height="49"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" systemColor="opaqueSeparatorColor"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="16"/>
                                 <color key="tintColor" systemColor="opaqueSeparatorColor"/>
-                                <state key="normal" title="Clean Transcript">
+                                <state key="normal" title="Clean &amp; Summarize">
                                     <color key="titleColor" systemColor="labelColor"/>
                                 </state>
                                 <connections>

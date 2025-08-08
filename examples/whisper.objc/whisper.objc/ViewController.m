@@ -629,7 +629,7 @@ void AudioInputCallback(void * inUserData,
 
             
             dispatch_async(dispatch_get_main_queue(), ^{
-                self->_textviewResult.text = mergedOutput;
+                self->_textviewResult.text = [NSString stringWithFormat:@"Rough Draft Transcript:\n\n%@", mergedOutput];
                 [self finishTranscribeResetUI];
                 _labelStatusInp.text = @"Status: Rough Draft";
                 [_buttonCleanSummarize setHidden:NO];
@@ -673,7 +673,8 @@ void AudioInputCallback(void * inUserData,
 
     NSLog(@"📄 Loaded transcript from: %@", latestURL.path);
     
-    _textviewResult.text = rawTranscript;
+    _textviewResult.text = [NSString stringWithFormat:@"Rough Draft Transcript:\n\n%@", rawTranscript];;
+    
 
     // summarize and clean
     //[self summarizeAndCleanTranscript:rawTranscript];
@@ -693,7 +694,11 @@ void AudioInputCallback(void * inUserData,
         NSLog(@"❌ Failed to read latest transcript: %@", readErr);
         return;
     }
-
+        
+    [_buttonTestTranscribe setHidden:YES];
+    [_buttonTranscribe setHidden:YES];
+    [_buttonCleanSummarize setHidden:YES];
+    [_buttonToggleCapture setHidden:YES];
     
     // summarize and clean
     [self summarizeAndCleanTranscript:rawTranscript];
@@ -701,8 +706,9 @@ void AudioInputCallback(void * inUserData,
 
 - (void) summarizeAndCleanTranscript:(NSString *)rawTranscript
 {
+    [_textviewResult setContentOffset:CGPointZero animated:YES];
     _labelStatusInp.text = @"Status: Cleaning";
-    _textviewResult.text = [NSString stringWithFormat:@"Cleaning up the transcript...\n\n%@", rawTranscript];
+    _textviewResult.text = [NSString stringWithFormat:@"Cleaning up the transcript...\n\nRough Draft:\n%@", rawTranscript];
     NSString *prompt = [NSString stringWithFormat:
         @"Here is a diarized transcript of a conversation:\n\n%@\n\n"
         "Please do the following:\n"
@@ -892,6 +898,7 @@ void AudioInputCallback(void * inUserData,
 
     if (!apiKey) {
         NSLog(@"❌ Missing API key — aborting request");
+        [_buttonToggleCapture setHidden:NO];
         return;
     }
     
@@ -907,6 +914,7 @@ void AudioInputCallback(void * inUserData,
         completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
             if (error) {
                 NSLog(@"❌ OpenAI error: %@", error);
+                [_buttonToggleCapture setHidden:NO];
                 return;
             }
 
@@ -914,9 +922,10 @@ void AudioInputCallback(void * inUserData,
             NSString *result = json[@"choices"][0][@"message"][@"content"];
             
             dispatch_async(dispatch_get_main_queue(), ^{
-                self->_textviewResult.text = result;
+                self->_textviewResult.text = [NSString stringWithFormat:@"Final Clean Transcript:\n\n%@", result];
                 NSLog(@"✅ Summary received from OpenAI:\n%@", result);
                 _labelStatusInp.text = @"Status: Final Result";
+                [_buttonToggleCapture setHidden:NO];
             });
         }];
     [task resume];
