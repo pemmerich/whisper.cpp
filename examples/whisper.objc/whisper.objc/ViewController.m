@@ -135,10 +135,13 @@ void AudioInputCallback(void * inUserData,
 
     AudioQueueStop(stateInp.queue, true);
     for (int i = 0; i < NUM_BUFFERS; i++) {
-        AudioQueueFreeBuffer(stateInp.queue, stateInp.buffers[i]);
+        if (stateInp.buffers[i]) {
+            AudioQueueFreeBuffer(stateInp.queue, stateInp.buffers[i]);
+            stateInp.buffers[i] = NULL;
+        }
     }
-
     AudioQueueDispose(stateInp.queue, true);
+    stateInp.queue = NULL;
 }
 
 - (IBAction)toggleCapture:(id)sender {
@@ -153,6 +156,7 @@ void AudioInputCallback(void * inUserData,
     NSLog(@"Start capturing");
     
     [_buttonTestTranscribe setHidden:YES];
+    [_buttonTranscribe setHidden:YES];
     [_buttonCleanSummarize setHidden:YES];
     
     stateInp.n_samples = 0;
@@ -251,7 +255,12 @@ void AudioInputCallback(void * inUserData,
 
         CFTimeInterval startTime = CACurrentMediaTime();
         
+        /*
         NSString *outputPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"whisper-transcript.txt"];
+        [WhisperOutputRedirector redirectStdoutToFileAtPath:outputPath];
+         */
+        NSString *outputPath = [NSTemporaryDirectory() stringByAppendingPathComponent:
+                                [NSString stringWithFormat:@"whisper-transcript-%@.txt", [NSUUID UUID].UUIDString]];
         [WhisperOutputRedirector redirectStdoutToFileAtPath:outputPath];
         
         whisper_reset_timings(self->stateInp.ctx);
@@ -261,6 +270,8 @@ void AudioInputCallback(void * inUserData,
                 self->_textviewResult.text = @"Transcription failed.";
                 self->stateInp.isTranscribing = false;
             });
+            [self finishTranscribeResetUI];
+            [WhisperOutputRedirector restoreStdout];
             return;
         }
         
@@ -353,6 +364,7 @@ void AudioInputCallback(void * inUserData,
                     self->_textviewResult.text = @"Diarization failed.";
                     self->stateInp.isTranscribing = false;
                 });
+                [self finishTranscribeResetUI];
                 return;
             }
             NSLog(@"📊 Raw diarization segments:\n%@", segments);
@@ -618,6 +630,7 @@ void AudioInputCallback(void * inUserData,
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 self->_textviewResult.text = mergedOutput;
+                [self finishTranscribeResetUI];
                 _labelStatusInp.text = @"Status: Rough Draft";
                 [_buttonCleanSummarize setHidden:NO];
                 [_buttonTranscribe setHidden:YES];
@@ -914,6 +927,17 @@ void AudioInputCallback(void * inUserData,
     if (!path) return nil;
     NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:path];
     return dict[@"OpenAI_API_Key"];
+}
+
+- (void)finishTranscribeResetUI {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self->stateInp.isTranscribing = false;
+        self->_labelStatusInp.text = @"Status: Idle";
+        self->_buttonToggleCapture.hidden = NO;
+        self->_buttonTranscribe.hidden = NO;      // or YES if you want to keep the flow
+        self->_buttonTestTranscribe.hidden = YES; // adjust to your UX
+        self->_buttonCleanSummarize.hidden = NO;  // or YES depending on flow
+    });
 }
 
 
