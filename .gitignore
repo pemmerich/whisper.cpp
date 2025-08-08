@@ -64,4 +64,4 @@ local.properties
 .log
 .exe
 
-key.plist
+examples/whisper.objc/whisper.objc/key.plist
