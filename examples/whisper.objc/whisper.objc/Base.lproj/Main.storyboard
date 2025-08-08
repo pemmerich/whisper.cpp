@@ -37,15 +37,15 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" keyboardDismissMode="onDrag" editable="NO" text="Record some speech and press &quot;Transcribe&quot;. The result will be displayed here." textAlignment="natural" translatesAutoresizingMaskIntoConstraints="NO" id="mv2-KD-7jn">
-                                <rect key="frame" x="35" y="248" width="320" height="475"/>
+                                <rect key="frame" x="35" y="189" width="320" height="534"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <color key="backgroundColor" systemColor="lightTextColor"/>
                                 <color key="textColor" systemColor="labelColor"/>
                                 <fontDescription key="fontDescription" name="Georgia" family="Georgia" pointSize="16"/>
                                 <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
                             </textView>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" id="Brs-xi-o8i">
-                                <rect key="frame" x="35" y="191" width="156" height="49"/>
+                            <button opaque="NO" contentMode="scaleToFill" ambiguous="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" id="Brs-xi-o8i">
+                                <rect key="frame" x="199" y="121" width="156" height="49"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" systemColor="opaqueSeparatorColor"/>
                                 <color key="tintColor" systemColor="opaqueSeparatorColor"/>
@@ -57,8 +57,8 @@
                                     <action selector="onTranscribePrepare:" destination="BYZ-38-t0r" eventType="touchDown" id="16T-dN-dfB"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" id="Kau-f3-tTU" userLabel="Button Test">
-                                <rect key="frame" x="199" y="191" width="156" height="49"/>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" id="Kau-f3-tTU" userLabel="Button Test Transcribe">
+                                <rect key="frame" x="199" y="121" width="156" height="49"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" systemColor="opaqueSeparatorColor"/>
                                 <color key="tintColor" systemColor="opaqueSeparatorColor"/>
@@ -69,6 +69,18 @@
                                     <action selector="testSummarizeTranscript:" destination="BYZ-38-t0r" eventType="touchUpInside" id="x5K-y7-uKp"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" id="bKd-Yl-z1O" userLabel="Button Clean">
+                                <rect key="frame" x="199" y="120" width="156" height="49"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" systemColor="opaqueSeparatorColor"/>
+                                <color key="tintColor" systemColor="opaqueSeparatorColor"/>
+                                <state key="normal" title="Clean Transcript">
+                                    <color key="titleColor" systemColor="labelColor"/>
+                                </state>
+                                <connections>
+                                    <action selector="cleanSummarizeTranscript:" destination="BYZ-38-t0r" eventType="touchUpInside" id="8G8-Md-Heq"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -77,6 +89,8 @@
                         </constraints>
                     </view>
                     <connections>
+                        <outlet property="buttonCleanSummarize" destination="bKd-Yl-z1O" id="rZw-08-LVL"/>
+                        <outlet property="buttonTestTranscribe" destination="Kau-f3-tTU" id="T4b-Jr-nJa"/>
                         <outlet property="buttonToggleCapture" destination="VOi-PT-Rbu" id="nis-VC-DQO"/>
                         <outlet property="buttonTranscribe" destination="Brs-xi-o8i" id="N8h-9W-ywb"/>
                         <outlet property="labelStatusInp" destination="Tgu-2q-eHQ" id="1hH-Ql-K6j"/>

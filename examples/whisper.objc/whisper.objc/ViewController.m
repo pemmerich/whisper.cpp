@@ -26,6 +26,8 @@ void AudioInputCallback(void * inUserData,
 @property (weak, nonatomic) IBOutlet UILabel    *labelStatusInp;
 @property (weak, nonatomic) IBOutlet UIButton   *buttonToggleCapture;
 @property (weak, nonatomic) IBOutlet UIButton   *buttonTranscribe;
+@property (weak, nonatomic) IBOutlet UIButton   *buttonTestTranscribe;
+@property (weak, nonatomic) IBOutlet UIButton   *buttonCleanSummarize;
 @property (weak, nonatomic) IBOutlet UIButton   *buttonRealtime;
 @property (weak, nonatomic) IBOutlet UITextView *textviewResult;
 
@@ -48,7 +50,11 @@ void AudioInputCallback(void * inUserData,
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-
+    
+    [_buttonTranscribe setHidden:YES];
+    [_buttonTestTranscribe setHidden:NO];
+    [_buttonCleanSummarize setHidden:YES];
+    
     // whisper.cpp initialization
     {
         // load the model
@@ -119,6 +125,11 @@ void AudioInputCallback(void * inUserData,
 
     [_buttonToggleCapture setTitle:@"Start capturing" forState:UIControlStateNormal];
     [_buttonToggleCapture setBackgroundColor:[UIColor grayColor]];
+    
+    [_buttonTranscribe setHidden:NO];
+    [_buttonTestTranscribe setHidden:YES];
+    
+   
 
     stateInp.isCapturing = false;
 
@@ -140,7 +151,10 @@ void AudioInputCallback(void * inUserData,
 
     // initiate audio capturing
     NSLog(@"Start capturing");
-
+    
+    [_buttonTestTranscribe setHidden:YES];
+    [_buttonCleanSummarize setHidden:YES];
+    
     stateInp.n_samples = 0;
     stateInp.vc = (__bridge void *)(self);
 
@@ -174,7 +188,10 @@ void AudioInputCallback(void * inUserData,
 
 - (IBAction)onTranscribePrepare:(id)sender {
     _textviewResult.text = @"Processing - please wait ...";
-
+    _labelStatusInp.text = @"Status: Processing";
+    
+    
+    
     if (stateInp.isRealtime) {
         [self onRealtime:(id)sender];
     }
@@ -198,7 +215,12 @@ void AudioInputCallback(void * inUserData,
 
 - (IBAction)onTranscribe:(id)sender {
     if (stateInp.isTranscribing) return;
-
+    
+    [_buttonCleanSummarize setHidden:YES];
+    [_buttonTranscribe setHidden:YES];
+    [_buttonTestTranscribe setHidden:YES];
+    [_buttonToggleCapture setHidden:YES];
+    
     NSLog(@"Processing %d samples", stateInp.n_samples);
     stateInp.isTranscribing = true;
 
@@ -596,7 +618,10 @@ void AudioInputCallback(void * inUserData,
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 self->_textviewResult.text = mergedOutput;
-
+                _labelStatusInp.text = @"Status: Rough Draft";
+                [_buttonCleanSummarize setHidden:NO];
+                [_buttonTranscribe setHidden:YES];
+                [_buttonToggleCapture setHidden:NO];
                 NSString *mergedFilename = [NSString stringWithFormat:@"merged-transcript-%@.txt", [NSUUID UUID].UUIDString];
                 NSURL *mergedURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject URLByAppendingPathComponent:mergedFilename];
                 
@@ -638,12 +663,33 @@ void AudioInputCallback(void * inUserData,
     _textviewResult.text = rawTranscript;
 
     // summarize and clean
+    //[self summarizeAndCleanTranscript:rawTranscript];
+    [_buttonCleanSummarize setHidden:NO];
+}
+
+- (IBAction)cleanSummarizeTranscript:(id)sender {
+    NSURL *latestURL = [self latestDiarizedTranscriptURL];
+    if (!latestURL) {
+        NSLog(@"❌ No diarized transcript found.");
+        return;
+    }
+
+    NSError *readErr = nil;
+    NSString *rawTranscript = [NSString stringWithContentsOfURL:latestURL encoding:NSUTF8StringEncoding error:&readErr];
+    if (readErr || !rawTranscript.length) {
+        NSLog(@"❌ Failed to read latest transcript: %@", readErr);
+        return;
+    }
+
+    
+    // summarize and clean
     [self summarizeAndCleanTranscript:rawTranscript];
 }
 
 - (void) summarizeAndCleanTranscript:(NSString *)rawTranscript
 {
-    _textviewResult.text = @"Cleaning up the transcript...";
+    _labelStatusInp.text = @"Status: Cleaning";
+    _textviewResult.text = [NSString stringWithFormat:@"Cleaning up the transcript...\n\n%@", rawTranscript];
     NSString *prompt = [NSString stringWithFormat:
         @"Here is a diarized transcript of a conversation:\n\n%@\n\n"
         "Please do the following:\n"
@@ -857,6 +903,7 @@ void AudioInputCallback(void * inUserData,
             dispatch_async(dispatch_get_main_queue(), ^{
                 self->_textviewResult.text = result;
                 NSLog(@"✅ Summary received from OpenAI:\n%@", result);
+                _labelStatusInp.text = @"Status: Final Result";
             });
         }];
     [task resume];
