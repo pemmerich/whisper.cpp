@@ -11,7 +11,7 @@
 #import <AudioToolbox/AudioQueue.h>
 
 #define NUM_BUFFERS 3
-#define MAX_AUDIO_SEC 240
+#define MAX_AUDIO_SEC 300
 #define SAMPLE_RATE 16000
 
 struct whisper_context;

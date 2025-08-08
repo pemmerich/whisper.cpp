@@ -636,19 +636,24 @@ void AudioInputCallback(void * inUserData,
     NSLog(@"📄 Loaded transcript from: %@", latestURL.path);
     
     _textviewResult.text = rawTranscript;
-    
+
+    // 🔥 Send prompt to OpenAI
+    [self summarizeAndCleanTranscript:rawTranscript];
+}
+
+- (void) summarizeAndCleanTranscript:(NSString *)rawTranscript
+{
     NSString *prompt = [NSString stringWithFormat:
         @"Here is a diarized transcript of a conversation:\n\n%@\n\n"
         "Please do the following:\n"
-        "1. Clean up the grammar and remove filler phrases.\n"
+        "1. Clean up the grammar and medical terminology.\n"
         "2. Preserve speaker identities clearly.\n"
         "3. At the end, provide a concise summary of the key points discussed.\n",
         rawTranscript];
 
     // 🔥 Send prompt to OpenAI
-    //[self callOpenAIWithPrompt:prompt];
+    [self callOpenAIWithPrompt:prompt];
 }
-
 
 //
 // Callback implementation
@@ -806,6 +811,45 @@ void AudioInputCallback(void * inUserData,
     }];
     
     return sorted.firstObject;
+}
+
+- (void)callOpenAIWithPrompt:(NSString *)prompt {
+    NSURL *url = [NSURL URLWithString:@"https://api.openai.com/v1/chat/completions"];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    request.HTTPMethod = @"POST";
+    
+    NSDictionary *payload = @{
+        @"model": @"gpt-4",
+        @"messages": @[
+            @{@"role": @"system", @"content": @"You are a helpful assistant."},
+            @{@"role": @"user", @"content": prompt}
+        ],
+        @"temperature": @0.3
+    };
+    
+    NSData *body = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
+    request.HTTPBody = body;
+
+    [request addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    [request addValue:@"Bearer YOUR_OPENAI_API_KEY" forHTTPHeaderField:@"Authorization"];
+
+    NSURLSessionDataTask *task = [[NSURLSession sharedSession]
+        dataTaskWithRequest:request
+        completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+            if (error) {
+                NSLog(@"❌ OpenAI error: %@", error);
+                return;
+            }
+
+            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+            NSString *result = json[@"choices"][0][@"message"][@"content"];
+            
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self->_textviewResult.text = result;
+                NSLog(@"✅ Summary received from OpenAI:\n%@", result);
+            });
+        }];
+    [task resume];
 }
 
 
