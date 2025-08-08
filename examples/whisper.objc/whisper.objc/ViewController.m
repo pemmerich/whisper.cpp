@@ -637,17 +637,18 @@ void AudioInputCallback(void * inUserData,
     
     _textviewResult.text = rawTranscript;
 
-    // 🔥 Send prompt to OpenAI
+    // summarize and clean
     [self summarizeAndCleanTranscript:rawTranscript];
 }
 
 - (void) summarizeAndCleanTranscript:(NSString *)rawTranscript
 {
+    _textviewResult.text = @"Cleaning up the transcript...";
     NSString *prompt = [NSString stringWithFormat:
         @"Here is a diarized transcript of a conversation:\n\n%@\n\n"
         "Please do the following:\n"
         "1. Clean up the grammar and medical terminology.\n"
-        "2. Preserve speaker identities clearly.\n"
+        "2. Clean up the speaker diarization.\n"
         "3. At the end, provide a concise summary of the key points discussed.\n",
         rawTranscript];
 
@@ -814,6 +815,7 @@ void AudioInputCallback(void * inUserData,
 }
 
 - (void)callOpenAIWithPrompt:(NSString *)prompt {
+    NSLog(@"Call Open AI With Prompt");
     NSURL *url = [NSURL URLWithString:@"https://api.openai.com/v1/chat/completions"];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     request.HTTPMethod = @"POST";
@@ -827,11 +829,19 @@ void AudioInputCallback(void * inUserData,
         @"temperature": @0.3
     };
     
+    NSString *apiKey = [self loadOpenAIKey];
+
+    if (!apiKey) {
+        NSLog(@"❌ Missing API key — aborting request");
+        return;
+    }
+    
     NSData *body = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
     request.HTTPBody = body;
 
     [request addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    [request addValue:@"Bearer YOUR_OPENAI_API_KEY" forHTTPHeaderField:@"Authorization"];
+    //[request addValue:@"Bearer " forHTTPHeaderField:@"Authorization"];
+    [request addValue:[NSString stringWithFormat:@"Bearer %@", apiKey] forHTTPHeaderField:@"Authorization"];
 
     NSURLSessionDataTask *task = [[NSURLSession sharedSession]
         dataTaskWithRequest:request
@@ -850,6 +860,13 @@ void AudioInputCallback(void * inUserData,
             });
         }];
     [task resume];
+}
+
+- (NSString *)loadOpenAIKey {
+    NSString *path = [[NSBundle mainBundle] pathForResource:@"key" ofType:@"plist"];
+    if (!path) return nil;
+    NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:path];
+    return dict[@"OpenAI_API_Key"];
 }
 
 
