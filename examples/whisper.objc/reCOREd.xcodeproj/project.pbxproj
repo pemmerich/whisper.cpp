@@ -215,7 +215,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 18627C7129052BDF00BD2A04 /* Build configuration list for PBXProject "whisper.objc" */;
+			buildConfigurationList = 18627C7129052BDF00BD2A04 /* Build configuration list for PBXProject "reCOREd" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -426,6 +426,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = whisper.objc/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = reCOREd;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access in order to transcribe speech";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -441,7 +442,7 @@
 				OTHER_CFLAGS = "-DGGML_USE_CPU=ON";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pixacore.whisper-objc";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = whisper.objc;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "whisper.objc/whisper.objc-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -466,6 +467,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = whisper.objc/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = reCOREd;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access in order to transcribe speech";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
@@ -481,7 +483,7 @@
 				OTHER_CFLAGS = "-DGGML_USE_CPU=ON";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.pixacore.whisper-objc";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = whisper.objc;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "whisper.objc/whisper.objc-Bridging-Header.h";
 				SWIFT_VERSION = 6.0;
@@ -493,7 +495,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		18627C7129052BDF00BD2A04 /* Build configuration list for PBXProject "whisper.objc" */ = {
+		18627C7129052BDF00BD2A04 /* Build configuration list for PBXProject "reCOREd" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				18627C8D29052BE000BD2A04 /* Debug */,

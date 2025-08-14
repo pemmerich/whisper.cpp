@@ -1,0 +1,23 @@
+{
+  "images" : [
+    {
+      "filename" : "white-neumorphism-soft-ui-design-for-web-design-application-ui-and-more-blank-button-vector.jpg",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "white-neumorphism-soft-ui-design-for-web-design-application-ui-and-more-blank-button-vector 1.jpg",
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "white-neumorphism-soft-ui-design-for-web-design-application-ui-and-more-blank-button-vector 2.jpg",
+      "idiom" : "universal",
+      "scale" : "3x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
