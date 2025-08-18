@@ -20,8 +20,6 @@
 		7FE3424F2A0C418A0015A058 /* ggml-base.en-encoder.mlmodelc in Resources */ = {isa = PBXBuildFile; fileRef = 7FE3424E2A0C418A0015A058 /* ggml-base.en-encoder.mlmodelc */; };
 		BD2841E82E45363E00F5B334 /* WhisperOutputRedirector.m in Sources */ = {isa = PBXBuildFile; fileRef = BD2841E72E45363E00F5B334 /* WhisperOutputRedirector.m */; };
 		BD2841EB2E46801700F5B334 /* key.plist in Resources */ = {isa = PBXBuildFile; fileRef = BD2841EA2E46801000F5B334 /* key.plist */; };
-		BD3F27402E33E2C800D3A95B /* ggml-whisper-medicalv5-johnyquest7-small.bin in Resources */ = {isa = PBXBuildFile; fileRef = BD3F273F2E33E2C800D3A95B /* ggml-whisper-medicalv5-johnyquest7-small.bin */; };
-		BD3F27422E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin in Resources */ = {isa = PBXBuildFile; fileRef = BD3F27412E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin */; };
 		BD3F27492E42CE8A00D3A95B /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = BD3F27482E42CE8A00D3A95B /* FluidAudio */; };
 		BD3F274E2E42E03100D3A95B /* whisper.objc-Bridging-Header.h in Sources */ = {isa = PBXBuildFile; fileRef = BD3F27442E41647600D3A95B /* whisper.objc-Bridging-Header.h */; };
 		BD3F27512E43CEA000D3A95B /* DiarizerBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD3F274F2E43AC5000D3A95B /* DiarizerBridge.swift */; };
@@ -242,11 +240,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				18627C8929052BE000BD2A04 /* LaunchScreen.storyboard in Resources */,
-				BD3F27422E33EE2500D3A95B /* ggml-whisper-medicalv4-saurabhy27-outcomes-large-v3.bin in Resources */,
 				7FE3424F2A0C418A0015A058 /* ggml-base.en-encoder.mlmodelc in Resources */,
 				18627C8629052BE000BD2A04 /* Assets.xcassets in Resources */,
 				BD2841EB2E46801700F5B334 /* key.plist in Resources */,
-				BD3F27402E33E2C800D3A95B /* ggml-whisper-medicalv5-johnyquest7-small.bin in Resources */,
 				18627C8429052BDF00BD2A04 /* Main.storyboard in Resources */,
 				18627C9B29052CFF00BD2A04 /* ggml-base.en.bin in Resources */,
 			);
@@ -433,6 +429,7 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -474,6 +471,7 @@
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
