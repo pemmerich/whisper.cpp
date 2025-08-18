@@ -712,7 +712,7 @@ void AudioInputCallback(void * inUserData,
     NSString *prompt = [NSString stringWithFormat:
         @"Here is a diarized transcript of a conversation:\n\n%@\n\n"
         "Please do the following:\n"
-        "1. Clean up the grammar and medical terminology.\n"
+        "1. Check for medical term accuracy and where you feel confident, change the transcript to what you think the speaker meant to say. Don't change grammar or sentence\n"
         "2. Clean up the speaker diarization.\n"
         "3. At the end, provide a concise summary of the key points discussed.\n",
         rawTranscript];
