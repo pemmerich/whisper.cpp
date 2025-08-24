@@ -718,7 +718,8 @@ void AudioInputCallback(void * inUserData,
         rawTranscript];
 
     // 🔥 Send prompt to OpenAI
-    [self callOpenAIWithPrompt:prompt];
+    //[self callOpenAIWithPrompt:prompt];
+    [self callOpenAIResponsesWithPrompt:prompt];
 }
 
 //
@@ -879,6 +880,130 @@ void AudioInputCallback(void * inUserData,
     return sorted.firstObject;
 }
 
+- (NSString *)extractTextFromResponsesJSON:(NSDictionary *)json {
+    NSMutableString *accum = [NSMutableString string];
+
+    // 1) Easy path: some models include a flat "output_text"
+    NSString *ot = json[@"output_text"];
+    if ([ot isKindOfClass:NSString.class] && ot.length) {
+        [accum appendString:ot];
+    }
+
+    // 2) General path: iterate "output" array
+    NSArray *output = json[@"output"];
+    if ([output isKindOfClass:NSArray.class]) {
+        for (id item in output) {
+            if (![item isKindOfClass:NSDictionary.class]) continue;
+            NSDictionary *dict = (NSDictionary *)item;
+
+            // 2a) Direct "content" array on the item
+            NSArray *content = dict[@"content"];
+            if ([content isKindOfClass:NSArray.class]) {
+                for (id block in content) {
+                    if (![block isKindOfClass:NSDictionary.class]) continue;
+                    NSString *t = block[@"text"];
+                    if ([t isKindOfClass:NSString.class] && t.length) {
+                        [accum appendString:t];
+                    }
+                }
+            }
+
+            // 2b) Sometimes it's nested under "message" → "content"
+            NSDictionary *message = dict[@"message"];
+            if ([message isKindOfClass:NSDictionary.class]) {
+                NSArray *mcontent = message[@"content"];
+                if ([mcontent isKindOfClass:NSArray.class]) {
+                    for (id block in mcontent) {
+                        if (![block isKindOfClass:NSDictionary.class]) continue;
+                        NSString *t = block[@"text"];
+                        if ([t isKindOfClass:NSString.class] && t.length) {
+                            [accum appendString:t];
+                        }
+                    }
+                }
+            }
+
+            // 2c) Some servers may also place plain "text" at this level
+            NSString *direct = dict[@"text"];
+            if ([direct isKindOfClass:NSString.class] && direct.length) {
+                [accum appendString:direct];
+            }
+        }
+    }
+
+    // 3) If still empty, try a last-resort scan of any arrays named "content"
+    if (!accum.length) {
+        id maybeContent = json[@"content"];
+        if ([maybeContent isKindOfClass:NSArray.class]) {
+            for (id block in (NSArray *)maybeContent) {
+                if (![block isKindOfClass:NSDictionary.class]) continue;
+                NSString *t = ((NSDictionary *)block)[@"text"];
+                if ([t isKindOfClass:NSString.class] && t.length) {
+                    [accum appendString:t];
+                }
+            }
+        }
+    }
+
+    return accum;
+}
+
+
+- (void)callOpenAIResponsesWithPrompt:(NSString *)prompt {
+    NSURL *url = [NSURL URLWithString:@"https://api.openai.com/v1/responses"];
+    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:url];
+    req.HTTPMethod = @"POST";
+
+    NSDictionary *payload = @{
+        @"model": @"gpt-5",     // or your specific snapshot, e.g. "gpt-5-2025-08-07"
+        @"input": prompt ?: @""
+        // IMPORTANT: do NOT include temperature/top_p etc. with many gpt-5 snapshots
+    };
+
+    NSString *apiKey = [self loadOpenAIKey];
+    if (!apiKey.length) { NSLog(@"❌ Missing API key"); return; }
+
+    req.HTTPBody = [NSJSONSerialization dataWithJSONObject:payload options:0 error:nil];
+    [req addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    [req addValue:[NSString stringWithFormat:@"Bearer %@", apiKey] forHTTPHeaderField:@"Authorization"];
+
+    [[[NSURLSession sharedSession] dataTaskWithRequest:req
+                                     completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
+        if (err) {
+            NSLog(@"❌ Network error: %@", err);
+            return;
+        }
+        NSHTTPURLResponse *http = (NSHTTPURLResponse *)resp;
+        if (http.statusCode < 200 || http.statusCode >= 300) {
+            NSLog(@"❌ HTTP %ld\n%@", (long)http.statusCode, [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
+            return;
+        }
+
+        NSError *jerr = nil;
+        NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&jerr];
+        if (jerr || ![json isKindOfClass:[NSDictionary class]]) {
+            NSLog(@"❌ JSON parse error: %@", jerr);
+            return;
+        }
+
+        NSLog(@"🧾 Raw response: %@", json);
+
+        NSString *finalText = [self extractTextFromResponsesJSON:json];
+        if (!finalText.length) {
+            finalText = @"(No text content returned.)";
+        }
+
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self->_textviewResult.text = [NSString stringWithFormat:@"Final Clean Transcript:\n\n%@", finalText];
+            self->_labelStatusInp.text = @"Status: Final Result";
+            self->_buttonToggleCapture.hidden = NO;
+        });
+    }] resume];
+}
+
+
+
+
 - (void)callOpenAIWithPrompt:(NSString *)prompt {
     NSLog(@"Call Open AI With Prompt");
     NSURL *url = [NSURL URLWithString:@"https://api.openai.com/v1/chat/completions"];
@@ -886,7 +1011,7 @@ void AudioInputCallback(void * inUserData,
     request.HTTPMethod = @"POST";
     
     NSDictionary *payload = @{
-        @"model": @"gpt-4",
+        @"model": @"gpt-5",
         @"messages": @[
             @{@"role": @"system", @"content": @"You are a helpful assistant."},
             @{@"role": @"user", @"content": prompt}
