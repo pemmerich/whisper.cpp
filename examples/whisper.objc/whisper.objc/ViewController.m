@@ -28,8 +28,10 @@ void AudioInputCallback(void * inUserData,
 @property (weak, nonatomic) IBOutlet UIButton   *buttonTranscribe;
 @property (weak, nonatomic) IBOutlet UIButton   *buttonTestTranscribe;
 @property (weak, nonatomic) IBOutlet UIButton   *buttonCleanSummarize;
+@property (weak, nonatomic) IBOutlet UIButton   *buttonSendToOpenAI;
 @property (weak, nonatomic) IBOutlet UIButton   *buttonRealtime;
 @property (weak, nonatomic) IBOutlet UITextView *textviewResult;
+@property (weak, nonatomic) IBOutlet UITextView *textviewPrompt;
 
 @end
 
@@ -54,6 +56,7 @@ void AudioInputCallback(void * inUserData,
     [_buttonTranscribe setHidden:YES];
     [_buttonTestTranscribe setHidden:NO];
     [_buttonCleanSummarize setHidden:YES];
+    [_buttonSendToOpenAI setHidden:YES];
     
     // whisper.cpp initialization
     {
@@ -221,6 +224,7 @@ void AudioInputCallback(void * inUserData,
     if (stateInp.isTranscribing) return;
     
     [_buttonCleanSummarize setHidden:YES];
+    [_buttonSendToOpenAI setHidden:YES];
     [_buttonTranscribe setHidden:YES];
     [_buttonTestTranscribe setHidden:YES];
     [_buttonToggleCapture setHidden:YES];
@@ -727,16 +731,22 @@ void AudioInputCallback(void * inUserData,
     _labelStatusInp.text = @"Status: Cleaning";
     _textviewResult.text = [NSString stringWithFormat:@"Cleaning up the transcript...\n\nRough Draft:\n%@", rawTranscript];
     NSString *prompt = [NSString stringWithFormat:
-        @"Here is a diarized transcript of a conversation:\n\n%@\n\n"
-        "Please do the following:\n"
+        @"Below is a diarized transcript of a conversation with timestamps. Keep the timestamps and do the following:\n\n"
         "1. Check for medical term accuracy and where you feel confident, change the transcript to what you think the speaker meant to say. Don't change grammar or sentence\n"
         "2. Clean up the speaker diarization.\n"
-        "3. At the end, provide a concise summary of the key points discussed.\n",
+        "3. At the end, provide a concise summary of the key points discussed.\n\n\n%@",
         rawTranscript];
 
     // 🔥 Send prompt to OpenAI
     //[self callOpenAIWithPrompt:prompt];
-    [self callOpenAIResponsesWithPrompt:prompt];
+    //[self callOpenAIResponsesWithPrompt:prompt];
+    
+    // Show editable prompt
+        self.textviewPrompt.text = prompt;
+        self.textviewResult.text = @"✏️ Please review and edit the prompt below, then press 'Send to OpenAI'.";
+        
+        // Reveal a "Send" button
+        [_buttonSendToOpenAI setHidden:NO];
 }
 
 //
@@ -1019,7 +1029,20 @@ void AudioInputCallback(void * inUserData,
 }
 
 
+- (IBAction)sendEditedPromptToOpenAI:(id)sender {
+    NSString *editedPrompt = self.textviewPrompt.text;
+    if (!editedPrompt.length) {
+        NSLog(@"⚠️ Prompt is empty, not sending");
+        return;
+    }
 
+    _labelStatusInp.text = @"Status: Sending to OpenAI";
+    _textviewResult.text = @"Sending edited prompt to OpenAI...";
+    
+    [_buttonSendToOpenAI setHidden:YES];
+    
+    [self callOpenAIResponsesWithPrompt:editedPrompt];
+}
 
 - (void)callOpenAIWithPrompt:(NSString *)prompt {
     NSLog(@"Call Open AI With Prompt");
