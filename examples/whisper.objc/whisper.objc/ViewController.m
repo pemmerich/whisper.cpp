@@ -396,6 +396,14 @@ void AudioInputCallback(void * inUserData,
             NSMutableString *mergedOutput = [NSMutableString string];
             NSInteger lastSpeaker = -1;
             
+            NSDate *now = [NSDate date];
+            NSDateFormatter *df = [[NSDateFormatter alloc] init];
+            df.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+            df.dateFormat = @"yyyy-MM-dd HH:mm:ss zzzz";
+            NSString *sessionHeader = [NSString stringWithFormat:@"Recorded at: %@\n", [df stringFromDate:now]];
+            [mergedOutput appendString:sessionHeader];
+
+            
             /*
             for (NSDictionary *entry in transcriptEntries) {
                 double t0 = [entry[@"start"] doubleValue];
@@ -620,11 +628,13 @@ void AudioInputCallback(void * inUserData,
 
                 // --- Speaker tag and text output ---
                 if (speakerId != lastSpeaker) {
-                    [mergedOutput appendFormat:@"\nSpeaker %ld:\n", (long)speakerId];
+                    NSString *ts = [self hmsFromSeconds:t0]; // t0 is the entry start (seconds)
+                    [mergedOutput appendFormat:@"\n[%@] Speaker %ld:\n", ts, (long)speakerId];
                     lastSpeaker = speakerId;
                 }
 
-                [mergedOutput appendFormat:@"%@\n", text];
+                NSString *lineTs = [self hmsFromSeconds:t0];
+                [mergedOutput appendFormat:@"[%@] %@\n", lineTs, text];
             }
 
             
@@ -635,7 +645,14 @@ void AudioInputCallback(void * inUserData,
                 [_buttonCleanSummarize setHidden:NO];
                 [_buttonTranscribe setHidden:YES];
                 [_buttonToggleCapture setHidden:NO];
-                NSString *mergedFilename = [NSString stringWithFormat:@"merged-transcript-%@.txt", [NSUUID UUID].UUIDString];
+                
+                NSDateFormatter *fnDf = [[NSDateFormatter alloc] init];
+                fnDf.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+                fnDf.dateFormat = @"yyyyMMdd-HHmmss";
+                NSString *stamp = [fnDf stringFromDate:[NSDate date]];
+                NSString *mergedFilename = [NSString stringWithFormat:@"merged-transcript-%@.txt", stamp];
+                
+                //NSString *mergedFilename = [NSString stringWithFormat:@"merged-transcript-%@.txt", [NSUUID UUID].UUIDString];
                 NSURL *mergedURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].lastObject URLByAppendingPathComponent:mergedFilename];
                 
                 NSError *writeErr = nil;
@@ -1072,6 +1089,16 @@ void AudioInputCallback(void * inUserData,
         self->_buttonTestTranscribe.hidden = YES; // adjust to your UX
         self->_buttonCleanSummarize.hidden = NO;  // or YES depending on flow
     });
+}
+
+- (NSString *)hmsFromSeconds:(double)sec {
+    if (sec < 0) sec = 0;
+    int hours   = (int)floor(sec / 3600.0);
+    int minutes = (int)floor(fmod(sec, 3600.0) / 60.0);
+    int seconds = (int)floor(fmod(sec, 60.0));
+    int millis  = (int)llround((sec - floor(sec)) * 1000.0);
+    //return [NSString stringWithFormat:@"%02d:%02d:%02d.%03d", hours, minutes, seconds, millis];
+    return [NSString stringWithFormat:@"%02d:%02d:%02d", hours, minutes, seconds];
 }
 
 
