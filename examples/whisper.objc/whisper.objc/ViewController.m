@@ -57,6 +57,7 @@ void AudioInputCallback(void * inUserData,
     [_buttonTestTranscribe setHidden:NO];
     [_buttonCleanSummarize setHidden:YES];
     [_buttonSendToOpenAI setHidden:YES];
+    [_textviewPrompt setHidden:YES];
     
     // whisper.cpp initialization
     {
@@ -119,6 +120,8 @@ void AudioInputCallback(void * inUserData,
 
     stateInp.isTranscribing = false;
     stateInp.isRealtime = false;
+    
+    
 }
 
 -(IBAction) stopCapturing {
@@ -743,6 +746,7 @@ void AudioInputCallback(void * inUserData,
     
     // Show editable prompt
         self.textviewPrompt.text = prompt;
+    [_textviewPrompt setHidden:NO];
         self.textviewResult.text = @"✏️ Please review and edit the prompt below, then press 'Send to OpenAI'.";
         
         // Reveal a "Send" button
@@ -1038,6 +1042,8 @@ void AudioInputCallback(void * inUserData,
 
     _labelStatusInp.text = @"Status: Sending to OpenAI";
     _textviewResult.text = @"Sending edited prompt to OpenAI...";
+    _textviewPrompt.text = @"";
+    [_textviewPrompt setHidden:YES];
     
     [_buttonSendToOpenAI setHidden:YES];
     
@@ -1095,6 +1101,8 @@ void AudioInputCallback(void * inUserData,
         }];
     [task resume];
 }
+
+
 
 - (NSString *)loadOpenAIKey {
     NSString *path = [[NSBundle mainBundle] pathForResource:@"key" ofType:@"plist"];
