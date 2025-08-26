@@ -33,6 +33,12 @@ void AudioInputCallback(void * inUserData,
 @property (weak, nonatomic) IBOutlet UITextView *textviewResult;
 @property (weak, nonatomic) IBOutlet UITextView *textviewPrompt;
 
+// model dropdown
+@property (weak, nonatomic) IBOutlet UIButton *buttonModel;
+@property (nonatomic, copy) NSString *selectedModel;
+@property (nonatomic, strong) NSArray<NSString *> *availableModels;
+
+
 @end
 
 @implementation ViewController
@@ -94,6 +100,48 @@ void AudioInputCallback(void * inUserData,
             NSLog(@"Failed to load model");
             return;
         }
+        
+        // List whatever models you want to expose
+        self.availableModels = @[
+            // GPT-4.x family
+            @"gpt-4o",           // Multimodal “Omni” model :contentReference[oaicite:1]{index=1}
+            @"gpt-4o-mini",      // Smaller/faster gpt-4o variant :contentReference[oaicite:2]{index=2}
+
+            // GPT-4.1 coding-focused models
+            @"gpt-4.1",          // Released April 2025 for coding :contentReference[oaicite:3]{index=3}
+            @"gpt-4.1-mini",     // Smaller and cheaper variant :contentReference[oaicite:4]{index=4}
+
+            // GPT-4.5 (Orion)—now deprecated
+            @"gpt-4.5",          // February 2025 release, retired August 2025 :contentReference[oaicite:5]{index=5}
+
+            // "o" reasoning series
+            @"o1",               // Enhanced reasoning model :contentReference[oaicite:6]{index=6}
+            @"o1-mini",          // Cheaper, faster version :contentReference[oaicite:7]{index=7}
+            @"o1-pro",           // High-compute variant :contentReference[oaicite:8]{index=8}
+            @"o3",               // Successor reasoning model :contentReference[oaicite:9]{index=9}
+            @"o3-mini",          // Compact o3 variant :contentReference[oaicite:10]{index=10}
+            @"o3-mini-high",     // Higher-effort reasoning in o3-mini :contentReference[oaicite:11]{index=11}
+
+            // GPT-5 family
+            @"gpt-5",                // Flagship multimodal model (Aug 7, 2025) :contentReference[oaicite:12]{index=12}
+            @"gpt-5-mini",           // Smaller/generally faster variant :contentReference[oaicite:13]{index=13}
+            @"gpt-5-nano",           // Even more streamlined version :contentReference[oaicite:14]{index=14}
+            @"gpt-5-thinking",       // Deeper reasoning specialization :contentReference[oaicite:15]{index=15}
+            @"gpt-5-thinking-mini",  // Smaller reasoning variant :contentReference[oaicite:16]{index=16}
+            @"gpt-5-thinking-nano",  // Compact reasoning variant :contentReference[oaicite:17]{index=17}
+
+            // Legacy fallback
+            @"gpt-3.5-turbo"         // Widely-used classic fallback
+        ];
+
+
+        // Load last selection or default
+        NSString *saved = [[NSUserDefaults standardUserDefaults] stringForKey:@"SelectedModel"];
+        self.selectedModel = saved ?: @"gpt-5";
+        [self.buttonModel setTitle:[NSString stringWithFormat:@"Model: %@", self.selectedModel]
+                              forState:UIControlStateNormal];
+
+        [self configureModelMenu];
     }
 
     // initialize audio format and buffers
@@ -981,12 +1029,14 @@ void AudioInputCallback(void * inUserData,
 
 
 - (void)callOpenAIResponsesWithPrompt:(NSString *)prompt {
+    NSString *model = self.selectedModel ?: @"gpt-5";
+    
     NSURL *url = [NSURL URLWithString:@"https://api.openai.com/v1/responses"];
     NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:url];
     req.HTTPMethod = @"POST";
 
     NSDictionary *payload = @{
-        @"model": @"gpt-5",     // or your specific snapshot, e.g. "gpt-5-2025-08-07"
+        @"model": model,     // or your specific snapshot, e.g. "gpt-5-2025-08-07"
         @"input": prompt ?: @""
         // IMPORTANT: do NOT include temperature/top_p etc. with many gpt-5 snapshots
     };
@@ -1047,17 +1097,20 @@ void AudioInputCallback(void * inUserData,
     
     [_buttonSendToOpenAI setHidden:YES];
     
-    [self callOpenAIResponsesWithPrompt:editedPrompt];
+    //[self callOpenAIResponsesWithPrompt:editedPrompt];
+    [self sendToOpenAIWithPrompt:editedPrompt];
 }
 
 - (void)callOpenAIWithPrompt:(NSString *)prompt {
     NSLog(@"Call Open AI With Prompt");
+    NSString *model = self.selectedModel ?: @"gpt-5";
+    
     NSURL *url = [NSURL URLWithString:@"https://api.openai.com/v1/chat/completions"];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     request.HTTPMethod = @"POST";
     
     NSDictionary *payload = @{
-        @"model": @"gpt-5",
+        @"model": model,
         @"messages": @[
             @{@"role": @"system", @"content": @"You are a helpful assistant."},
             @{@"role": @"user", @"content": prompt}
@@ -1130,6 +1183,43 @@ void AudioInputCallback(void * inUserData,
     int millis  = (int)llround((sec - floor(sec)) * 1000.0);
     //return [NSString stringWithFormat:@"%02d:%02d:%02d.%03d", hours, minutes, seconds, millis];
     return [NSString stringWithFormat:@"%02d:%02d:%02d", hours, minutes, seconds];
+}
+
+- (void)sendToOpenAIWithPrompt:(NSString *)prompt {
+    NSString *model = self.selectedModel ?: @"gpt-5";
+
+    if ([model hasPrefix:@"gpt-4"] || [model hasPrefix:@"gpt-3.5"]) {
+        [self callOpenAIWithPrompt:prompt];
+    } else if ([model hasPrefix:@"gpt-5"] || [model hasPrefix:@"o"]) {
+        [self callOpenAIResponsesWithPrompt:prompt];
+    } else {
+        NSLog(@"❌ Unsupported model: %@", model);
+        _textviewResult.text = [NSString stringWithFormat:@"❌ Unsupported model: %@", model];
+    }
+}
+
+
+- (void)configureModelMenu {
+    NSMutableArray<UIMenuElement *> *actions = [NSMutableArray array];
+
+    for (NSString *model in self.availableModels) {
+        UIAction *a = [UIAction actionWithTitle:model
+                                          image:nil
+                                     identifier:nil
+                                        handler:^(__kindof UIAction * _Nonnull action) {
+            self.selectedModel = model;
+            [self.buttonModel setTitle:[NSString stringWithFormat:@"Model: %@", model]
+                              forState:UIControlStateNormal];
+            [[NSUserDefaults standardUserDefaults] setObject:model forKey:@"SelectedModel"];
+        }];
+        [actions addObject:a];
+    }
+
+    if (@available(iOS 14.0, *)) {
+        self.buttonModel.menu = [UIMenu menuWithTitle:@"Choose Model"
+                                              children:actions];
+        self.buttonModel.showsMenuAsPrimaryAction = YES; // tap opens menu
+    }
 }
 
 
